@@ -1,0 +1,97 @@
+== alarm_output
+
+This sample application is designed to test the alarm-output events.
+This SampleComponent turns the alarm output off and on.
+
+Related events are as follows:
+
+* Output Event 
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+|Alarm Output ON|-|ConfigurableAlarmOut
+|Alarm OutputOFF|-|ConfigurableAlarmOut
+|===            
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum 
+
+|Alarm Output
+ON|i_configurable_alarm_out.h|IConfigurableAlarmOut::EEvent::eRelayRequest
+|Alarm Output
+OFF|i_configurable_alarm_out.h|IConfigurableAlarmOut::EEvent::eRelayRequest
+|===
+
+=== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+== Alarm Output ON
+
+This event enables the alarm output.
+
+=== Scenario
+
+* Test
+[arabic]
+. Open the camera’s web viewer, go to [Settings]>[Event]>[Alarm I/O], set [I/O 1] to [Output], and click [Apply].
+. Go to [Settings]>[Open Platform], and click [Start] to start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] in the
+application's web page.(Set [I/O] to the channel set to [Output])
+* Input Data 
++
+[options="header"]
+|===
+|Input Data|Type|Description
+
+|Channel|uint32_t|Alarm channel
+|Duration|uint32_t|Alarm duration( 0 ~ 15 sec)
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the alarm output is
+enabled for the set duration.
+
+== Alarm Output OFF
+
+This event disables the alarm output.
+
+=== Scenario
+
+* Test
+[arabic]
+. Open the camera’s web viewer, go to [Settings]>[Event]>[Alarm I/O], set [I/O 1] to [Output], and click [Apply].
+. Go to [Settings]>[Open Platform], and click [Start] to start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] in the
+application's web page.(Set [I/O] to the channel set to [Output])
+* Input Data 
++
+[options="header"]
+|===
+|Input data|Type|Description
+
+|channel|uint32_t|Alarm channel
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the alarm output is
+disabled.
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=alarm_output SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

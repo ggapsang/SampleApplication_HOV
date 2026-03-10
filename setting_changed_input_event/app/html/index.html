@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Setting Changed Input Event Sample</title>
+</head>
+
+<body>
+    <h1>Setting Changed Input Event</h1>
+    <h2>Setting Changed Status</h2>
+    <form>
+        <button type="button" onclick="sendData()">Get</button>
+        <div id="conf"></div>
+    </form>
+    <hr>
+
+    <div id="status" />
+
+    <script>
+        const sendData = () => {
+            const paths = window.location.pathname.split('/');
+            const app_id = paths[5];
+
+            const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+            fetch(uri)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Request error');
+                })
+                .then(data => {
+                    console.log(data.status);
+
+                    const status = document.getElementById('status');
+                    let statusString = '';
+                    let idx = 0;
+                    data.status.forEach(state => {
+                        statusString += `<tr><td>${state.setting_type}</td><td>${state.latest_changed}</td><td>${state.channel}</td></tr>`
+                    });
+                    status.innerHTML = `<table><tr><th scope="col">SettingType</td><th scope="col">LatestChanged</td><th scope="col">Channel</td></tr>${statusString}</table>`;
+                })
+                .catch(error => {
+                    console.error('Error', error);
+                })
+        }
+    </script>
+</body>
+
+</html>

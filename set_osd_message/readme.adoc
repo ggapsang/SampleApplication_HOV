@@ -1,0 +1,114 @@
+== set_osd_message
+
+This sample application is designed to test the set-osd-message events.
+
+Related events are as follows:
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|Set OSD message|SRMgrVideo|SRMgrVideo_0 ~ SRMgrVideo_#
+|===
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type
+
+|Set OSD
+message|i_p_stream_requester_manager_video.h|IPStreamRequesterManagerVideo::EEventType::eExternalMultiLineOsd
+|===
+
+=== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+== Setting OSD messages
+
+The application can set a OSD message using this event. The message
+passed will be displayed, along with the camera title.
+OenApp uses one last index of OSD message. If it overlaps with the
+camera's OSD, the OpenApp OSD will be displayed.
+If the OSD is not used in OpenApp or when the app is terminated, the
+OSD disable event must be sent by setting Enable of the OSD to Off.
+
+=== Scenario
+
+* Special note
+** To use the Set OSD Message API, you must check the parameters defined in the Protocol attribute file. The method to check the parameters defined in the Protocol attribute file is as follows.
++
+[source,text]
+----
+http://<Camera IP>/stw-cgi/attributes.cgi
+----
+** The parameters you need to check to use the OSD Message API are as follows:
++
+[cols=",,",options="header",]
+|===
+| OSD Option | Parameter | Value
+
+|Position of OSD message|PositionX and PositionY|min, max value
+| |OSDPosition|enum value
+|Font Size of OSD message|CustomFontSize|min, max value
+| |FontSize|enum value
+|===
+** To set the Position of OSD Message, if PositionX and PositionY exist, use the min and max values of PositionX and PositionY, and if OSDPosition exists, use the enum value of OSDPosition.
+** To set the Font Size of OSD Message, if CustomFontSize exists, use the min and max values of CustomFontSize. If CustomFontSize does not exist, use the enum value of FontSize.
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] on the
+application web page.
+
+* Input Data
++ 
+[options="header"]
+|===
+|Variable|Type|Description 
+
+|Enable|bool|Set whether to display the OSD or not.
+|Index|int32_t|Index of osd message(Only 101) 
+|Position X|int32_t|Position of X(min ~ max) 
+|Position
+Y|int32_t|Position of Y(min ~ max) 
+|OSDPosition|string|(For BWC Carmera Only)
+TopLeft/TopRight/BottomLeft/BottomRight
+|OSDType|string|Message Type(Only
+"Title") 
+|FontSize|string|Small/Medium/Large 
+|CustomFontSize|int32_t|Font Size(min ~ max)
+|OSD
+Color|string|White/Black/Gray 
+|Transparency|string|Set the transparency
+of the OSD.(Off/Low/Medium/High) 
+|OSD|string|OSD message the user
+wants to display
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the entered OSD
+Message appears on the camera screen.
+* To check whether the OSD Message has been set, follow the link below:
++
+[source,text]
+----
+http://<Camera IP>
+----
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=set_osd_message SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

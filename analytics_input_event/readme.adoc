@@ -1,0 +1,57 @@
+== analytics_input_event
+
+This sample application is designed to test the analytics-input events.
+This application receives analytics input events and leaves logs. For
+more details, refer to *1.2 Analytics Events* in *Hanwha_Vision_Open_Platform_SDK_API*.
+
+Related events are as follows:
+
+*Receivable Events*
+
+* Analytics Events +
+When you create an application to install on a
+camera, you can receive the results of the events triggered by the
+camera's default video and audio analytics features. To receive this
+event, enable [Analytics] > [Motion detection] features on the camera web page.
+** Motion detection
+
+=== Prerequisites
+
+* CV5 camera that supports [Analytics] > [Motion detection] features
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. Open the camera web viewer, go to [Setup]>[Open Platform], and click
+[Install] to install the application.
+. Default channel is 0.
+* Test
+[arabic]
+. Click [Start] in the camera web viewer to start the application.
+. Activate one of the [Analytics] > [Motion detection] features you want to test.
+. Trigger a detection event.
+. Click [Go App] in the [Open platform] menu of the camera web viewer.
+. Click [Get] on the application web page.
+. Check the result. The result shows the most recent 10 items.
+
+=== Result
+
+....
+Motion Detection Event Info
+Index EventType           MessageTime                   State Channel
+0     MotionDetection     2023-12-08T01:17:33.194Z      true  0
+1     MotionDetection     2023-12-08T01:17:34.194Z      false 0
+....
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=analytics_input_event SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

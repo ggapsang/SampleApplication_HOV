@@ -1,0 +1,26 @@
+{
+  "Version" : "1.0.0",
+  "Name": "SampleComponent",
+  "Attributes": [
+    {
+      "topic_str": "",
+      "source_key": "",
+      "source_value": "",
+      "data_key": "",
+      "data_value": "",
+      "element_name": "",
+      "element_descriptor_name": "",
+      "element_type_name": "",
+      "element_likelihood": "",
+      "object_id": "",
+      "parent_id": "",
+      "likelihood": "",
+      "category": "",
+      "attr_num": "",
+      "rect_sx": "",
+      "rect_ex": "",
+      "rect_sy": "",
+      "rect_ey": ""
+    }
+  ]
+}

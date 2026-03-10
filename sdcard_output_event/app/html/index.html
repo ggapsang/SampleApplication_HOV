@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>SDCard Output Event</title>
+</head>
+
+<body>
+  <h1>SDCard Output Event</h1>
+
+  <pre>Sdcard Slot Index <input type="number" id="sdcard" value="0" min="0" max="1" oninput="validateInput(this);" /> : Slot1 = 0, Slot2 = 1</pre>
+  <p>1. Start SD Card</p>
+  <form>
+    <button type="button" onclick="onStartSDCard()">Send</button>
+    <div id="start_result"></div>
+    <p id="sdcard_range"></p>
+    <button type="button" onclick="onGetPath()">GetPath</button>
+    <div id="path_result"></div>
+  </form>
+  <br>
+  <p>2. Stop SD Card</p>
+  <form>
+    <button type="button" onclick="onStopSDCard()">Send</button>
+    <div id="stop_result"></div>
+    <p id="sdcard_range"></p>
+    <button type="button" onclick="onStopResult()">Get Result</button>
+    <div id="stop_request_result"></div>
+  </form>
+  <br>
+  <p>3. Format SD Card</p>
+  <form>
+    <button type="button" onclick="onFormatSDCard()">Send</button>
+    <div id="format_result"></div>
+    <p id="sdcard_range"></p>
+    <button type="button" onclick="onFormatResult()">Get Result</button>
+    <div id="format_request_result"></div>
+  </form>
+  <br>
+  <p>4. Set Exclusive Mode</p>
+  <form>
+    <pre>exclusive mode <input type="text" id="exclusive_mode" value="True" pattern="True|False" /></pre>
+    <button type="button" onclick="onSetExclusiveMode()">Send</button>
+    <div id="set_result"></div>
+    <p id="exclusive_mode_values"></p>
+  </form>
+  <br>
+  <p>5. Get Exclusive Mode Status</p>
+  <form>
+    <button type="button" onclick="onGetExclusiveModeStatus()">Send</button>
+    <div id="get_result"></div>
+    <button type="button" onclick="onGetExclusiveModeResult()">Get</button>
+    <div id="exclusive_mode_result"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    function validateInput(input) {
+      var value = parseInt(input.value);
+      var min = parseInt(input.min);
+      var max = parseInt(input.max);
+
+      if (value < min || value > max) {
+        alert("Input value is out of range. Please enter a value["+ value +"] between " + min + " and " + max + ".");
+        input.value = 0;
+      }
+    }
+
+    function onStartSDCard() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/startsdcard`;
+      console.log(uri);
+      const req = {
+        app_id: app_id,
+        sdcard: document.getElementById("sdcard").value
+      };
+      const res = document.getElementById('start_result');
+      sendData(uri, 'POST', req, res);
+      //const sdcardrange = document.getElementById('sdcard_range');
+      //sdcardrange.textContent = `sdcard range: ${document.getElementById('sdcard').min} ~ ${document.getElementById('sdcard').max}`;
+    }
+
+    function onGetPath() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/getsdcardpath`;
+      console.log(uri);
+      fetch(uri).then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Request error');
+      }).then(data => {
+        console.log(data);
+        const result = document.getElementById('path_result');
+        result.textContent = data.path;
+      }).catch(error => {
+        console.error('Error', error);
+      })
+    }
+
+    function onStopSDCard() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/stopsdcard`;
+      console.log(uri);
+      const req = {
+        app_id: app_id,
+        sdcard: document.getElementById("sdcard").value,
+      };
+      const res = document.getElementById('stop_result');
+      sendData(uri, 'POST', req, res);
+      //const sdcardrange = document.getElementById('sdcard_range');
+      //sdcardrange.textContent = `sdcard range: ${document.getElementById('sdcard').min} ~ ${document.getElementById('sdcard').max}`;
+    }
+
+    function onStopResult() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/stopresult`;
+      console.log(uri);
+      fetch(uri).then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Request error');
+      }).then(data => {
+        console.log(data);
+        const result = document.getElementById('stop_request_result');
+        result.textContent = data.result;
+      }).catch(error => {
+        console.error('Error', error);
+      })
+    }
+
+    function onFormatSDCard() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/formatsdcard`;
+      console.log(uri);
+      const req = {
+        app_id: app_id,
+        sdcard: document.getElementById("sdcard").value
+      };
+      const res = document.getElementById('format_result');
+      sendData(uri, 'POST', req, res);
+      //const sdcardrange = document.getElementById('sdcard_range');
+      //sdcardrange.textContent = `sdcard range: ${document.getElementById('sdcard').min} ~ ${document.getElementById('sdcard').max}`;
+    }
+
+    function onFormatResult() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/formatresult`;
+      console.log(uri);
+      fetch(uri).then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Request error');
+      }).then(data => {
+        console.log(data);
+        const result = document.getElementById('format_request_result');
+        result.textContent = data.result;
+      }).catch(error => {
+        console.error('Error', error);
+      })
+    }
+
+    function onSetExclusiveMode() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/setexclusivemode`;
+      console.log(uri);
+      const req = {
+        app_id: app_id,
+        exclusive_mode: exclusive_mode.value
+      };
+      const res = document.getElementById('set_result');
+      sendData(uri, 'POST', req, res);
+      const exclusive_mode_values = document.getElementById('exclusive_mode_values');
+      exclusive_mode_values.textContent = `The value can only be True or False.`;
+    }
+
+    function onGetExclusiveModeStatus() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/getexclusivemodestatus`;
+      console.log(uri);
+      const req = {
+        app_id: app_id
+      };
+      const res = document.getElementById('get_result');
+      sendData(uri, 'POST', req, res);
+    }
+
+    function onGetExclusiveModeResult() {
+      var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/getexclusivemoderesult`;
+      fetch(uri)
+        .then(response => {
+          if(response.ok) {
+            return response.json();
+          }
+          throw new Error('Request error');
+        })
+        .then(data => {
+          console.log(data);
+          const result = document.getElementById('exclusive_mode_result');
+          result.textContent = data.Mode;
+        })
+        .catch(error=>{
+          console.error('Error', error);
+        })
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        console.log(response.json());
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+</body>
+
+</html>

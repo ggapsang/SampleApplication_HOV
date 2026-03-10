@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Alarm Output</title>
+</head>
+
+<body>
+  <h1>Alarm Output</h1>
+  <p>Alarm Output ON()</p>
+  <form>
+    <pre>Channel <input type="text" id="channel1" value="1" /> : Enter the channel to turn alarm output on.</pre>
+    <pre>Duration <input type="number" id="duration1" value=0 min=0 max=15 oninput="validateInput(this);" /> : duration of the alarm.( 0 ~ 15 sec )</pre>
+    <button type="button" onclick="onSendAlarmOutputOn()">Send</button>
+    <div id="response1"></div>
+  </form>
+  <p>Alarm Output OFF()</p>
+  <form>
+    <pre>Channel <input type="text" id="channel2" value="1" />: Enter the channel to turn alarm output off.</pre>
+    <button type="button" onclick="onSendAlarmOutputOff()">Send</button>
+    <div id="response2"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function validateInput(input) {
+      var value = parseInt(input.value);
+      var min = parseInt(input.min);
+      var max = parseInt(input.max);
+
+      if (value < min || value > max) {
+        alert("Input value is out of range. Please enter a value["+ value +"] between " + min + " and " + max + ".");
+        input.value = 0;
+      }
+    }
+
+    const onSendAlarmOutputOn = () => {
+      const req = {
+        mode: 'on',
+        channel: document.getElementById('channel1').value,
+        duration:  document.getElementById('duration1').value
+      }
+      const res = document.getElementById('response1');
+      sendData(uri, 'POST', req, res);
+    }
+
+    const onSendAlarmOutputOff = () => {
+      const req = {
+        mode: 'off',
+        channel: document.getElementById('channel2').value,
+        duration: '0'
+      }
+      const res = document.getElementById('response2');
+      sendData(uri, 'POST', req, res);
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+
+  <style>
+    #response1 {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #response2 {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>

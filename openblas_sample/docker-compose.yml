@@ -1,0 +1,19 @@
+services:
+  opensdk:
+    image: opensdk:${SDK_VER:-25.02.25}
+    container_name : ${APP_NAME:-openblas_sample}
+    env_file:
+      - .env
+    volumes:
+      - ./:/opt/${APP_NAME}
+    working_dir: /opt/${APP_NAME}
+    command: >
+      /bin/bash -c "
+      cd /opt/${APP_NAME}/app/ &&
+      mkdir -p build &&
+      cd build &&
+      cmake -DSOC=${SOC} .. &&
+      make clean && make && make install &&
+      cd /opt/${APP_NAME} &&
+      opensdk_packager
+      "

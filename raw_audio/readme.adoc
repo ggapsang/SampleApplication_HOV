@@ -1,0 +1,68 @@
+== raw_audio
+
+This sample application is designed to test the raw-audio events. This
+application receives raw audio events and leaves logs. For more details,
+refer to *1.1 Media Events* in *Hanwha_Vision_Open_Platform_SDK_API*.
+
+Related events are as follows:
+
+*Receivable Events*
+
+* Raw Audio +
+This event is designed to transmit raw audio data in the Pulse Code Modulation (PCM) format. This event is not related to the audio checkbox in the video profile. This data is accompanied by the following information:
++
+....
+- Sampling Rate: The velocity at which the audio data is sampled. The number of samples per unit of time.
+- Time: The exact time when the audio event occurred.
+- Codec Type: The codec type is PCM.
+- Amplitude: The intensity or magnitude of the audio signal.
+....
+
+=== Prerequisites
+
+* Raw audio compatible device
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. click [Install] to install the application in [Open platform] menu of
+the camera web viewer.
+* Test
+[arabic]
+. Click [Start] in the camera web viewer to start the application.
+. Generate sound so that the device can detect sound.
+. Click [Go App] in the camera web viewer.
+. Click [Get] on the application web page.
+. Check the result.
+
+=== Result
+
+Go App
+
+....
+Index Timestamp     SampleRate  CodecType Amplitude
+0     1720680335683 8000        PCM       16
+1     1720680335783 8000        PCM       16
+2     1720680335883 8000        PCM       16
+3     1720680335983 8000        PCM       16
+4     1720680336083 8000        PCM       16
+5     1720680336184 8000        PCM       16
+6     1720680336284 8000        PCM       16
+7     1720680336384 8000        PCM       16
+8     1720680336483 8000        PCM       16
+9     1720680336583 8000        PCM       16
+10    1720680336683 8000        PCM       16
+....
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=raw_audio SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

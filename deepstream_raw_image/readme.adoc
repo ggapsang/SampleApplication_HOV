@@ -1,0 +1,71 @@
+== deepstream_raw_image
+
+This sample application is designed to deliver frame metadata and how to get raw image from device using
+DeepStream SDK
+
+=== Prerequisites
+
+* Devices using NVIDIA chipset.
+* Hanwha Vision Open Platform 24.05.31 or higher
+* DeepStream 6.3 SDK
+*** Refer to HanwhaVision_OpenPlatform_Programming_Guide.pdf 
+***** **2.6.1 Prepare DeepStream SDK**
+***** **2.6.2 Using DeepStream SDK**
+
+=== Scenario
+
+* Preconditions
+[arabic]]
+. Go to [Channel Setup] and click [Manual] 
+. Add a camera as Channel 1
+
+[arabic]
+. Click [Go App] in the [Open platform] menu of the web viewer.
+. Select profile info from the combobox.
+. Click [Start].
+. Allow some time for the DeepStream pipeline to initiate. This usually takes between 10 to 20 seconds initially.
+. Click [Info] to get results of object detection.
+
+=== Result
+
+=== Extracting a file for application installation
+
+[arabic]
+. Run the Hanwha Vision Open Platform image as a daemon, specifying both the SDK path and the path for deepstream_raw_image
++
+____
+Note
+
+Ensure that the DeepStream SDK is prepared. 
+
+____
+
++
+....
+$ docker run -d -it --name opensdk_container -v path/to/sdk:opt/opensdk/common/product/orinnx8g_jp512/sdk -v path/to/deepstream_raw_image:/opt/deepstream_raw_image opensdk:${SDK_VER}
+$ docker exec -it opensdk_container /bin/bash
+....
+. Build deepstream_raw_image 
++
+....
+in opensdk_container
+$ cd /opt/deepstream_raw_image/app
+$ mkdir build
+$ cd build
+$ cmake -DSOC=orinnx8g_jp512 ..
+$ make install 
+....
+. Package 
++
+....
+in opensdk_container
+$ cd /opt/deepstream_raw_image
+$ opensdk_packager
+....
+. Exit from opensdk_container
+. Install using the path: /path/to/deepstream_raw_image/deepstream_raw_image.cap
+
+=== Appendix
+
+* Sunapi Requester
+*** To get the profile information, use SunapiRequeser to get it. To utilize the information, refer to the 3.2.1.1 Request SUNAPI section of HanwhaVision_OpenPlatform_SDK_API.pdf.

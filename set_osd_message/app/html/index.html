@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Set OSD Message</title>
+</head>
+
+<body>
+  <h1>Set OSD Message</h1>
+  <p>SetOSDMessage()</p>
+  <hr>
+  <span style="color: Red; font-weight: bold;">Please go to the link below to check the parameters defined in the protocol attribute file.</span>
+  <pre>http://<span id="domain"></span>/stw-cgi/attributes.cgi</pre>
+  <hr>
+  <form>
+    <pre>Enable            <select id="enable"> <option value=1>ON</option><option value=0>OFF</option></select> : Enter the Enable OSD message.</pre>
+    <pre>OSD Color         <select id="osd_color"> <option value="White">White</option><option value="Black">Black</option><option value="Gray">Gray</option></select> : color of the OSD message.(White/Black/Gray)</pre>
+    <pre>Transparency      <select id="transparency"> <option value="Off">Off</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option></select> : transparency of the OSD message.(Off/Low/Medium/High)</pre>
+    <pre>OSD               <input type="text" id="osd" value="#HanwhaVision# Test OSD!!!" /> : OSD message.</pre>
+
+    <hr>
+    <pre><span style="color: blue; font-weight: bold;">OSD Position Settings</span></pre>
+    <pre><span style="color: black; font-weight: bold;">Set OSDPosition:</span></pre>
+    <pre>OSD Position      <select id="osd_position"> <option value="TopLeft">TopLeft</option><option value="TopRight">TopRight</option><option value="BottomLeft">BottomLeft</option><option value="BottomRight">BottomRight</option></select> : Position of the OSD message.(TopLeft/TopRight/BottomLeft/BottomRight)</pre>
+    <pre><span style="color: black; font-weight: bold;">Set PositionX and PositionY:</span></pre>
+    <pre>Position X        <input type="number" id="position_x" value=0 min=0 oninput="this.value = Math.max(this.value, 0)"/> : Position X of the OSD message.(min ~ max of PositionX)</pre>
+    <pre>Position Y        <input type="number" id="position_y" value=0 min=0 oninput="this.value = Math.max(this.value, 0)"/> : Position Y of the OSD message..(min ~ max of PositionY)</pre>
+    <hr>
+    <pre><span style="color: blue; font-weight: bold;">OSD Font Size Settings</span></pre>
+    <pre><span style="color: black; font-weight: bold;">Set CustomFontSize:</span></pre>
+    <pre>Custom Font Size  <input type="number" id="custom_font_size" value=0 min=0 oninput="this.value = Math.max(this.value, 0)"/> : size of the OSD message.(min ~ max of CustomFontSize)</pre>
+    <pre><span style="color: black; font-weight: bold;">Set FontSize:</span></pre>
+    <pre>Font Size         <select id="font_size"> <option value="Small">Small</option><option value="Medium">Medium</option><option value="Large">Large</option></select> : size of the OSD message.(Small/Medium/Large)</pre>
+    <hr>
+    <button type="button" onclick="onSendOSDMessage()">Send</button>
+    <div id="res_send_osd_meesage"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+    document.getElementById("domain").textContent = window.location.hostname;
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function validateInput(input) {
+      var value = parseInt(input.value);
+      var min = parseInt(input.min);
+      var max = parseInt(input.max);
+
+      if (value < min || value > max) {
+        alert("Input value is out of range. Please enter a value["+ value +"] between " + min + " and " + max + ".");
+        input.value = min;
+      }
+    }
+
+    function onSendOSDMessage() {
+      const req = {
+        enable: document.getElementById("enable").value,
+        position: {
+          x: document.getElementById("position_x").value,
+          y: document.getElementById("position_y").value
+        },
+        font_size: document.getElementById("font_size").value,
+        custom_font_size: document.getElementById("custom_font_size").value,
+        osd_color: document.getElementById("osd_color").value,
+        transparency: document.getElementById("transparency").value,
+        osd: document.getElementById("osd").value,
+
+        // For BWC Carmera Only
+        osd_position: document.getElementById("osd_position").value
+      };
+      const res = document.getElementById('res_send_osd_meesage');
+      sendData(uri, 'POST', req, res)
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+
+  <style>
+    #res_send_osd_meesage {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>

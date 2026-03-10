@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Event</title>
+</head>
+
+<body>
+  <h1>Dynamic Event</h1>
+  <h2>Get Schema</h2>
+  <span id="metadata_schema">
+    <p>Get Metadata schema.</p>
+    <form>
+      <button type="button" onclick="onGetMetadataSchema()">Get</button>
+      <div id="resp_metadata_schema"></div>
+    </form>
+  </span>
+  <span id="event_status_schema">
+    <p>Get Event Status schema.</p>
+    <form>
+      <button type="button" onclick="onGetEventStatusSchema()">Get</button>
+      <div id="resp_event_status_schema"></div>
+    </form>
+  </span>
+  <span id="meta_frame_schema"></span>
+    <p>Get Meta Frame schema.</p>
+    <form>
+      <button type="button" onclick="onGetFrameMetadataScheme()">Get</button>
+      <div id="resp_meta_frame_schema"></div>
+    </form>
+  </span>
+  <span id="meta_frame_capability"></span>
+    <p>Get Meta Frame capability.</p>
+    <form>
+      <button type="button" onclick="onGetFrameMetadataCapability()">Get</button>
+      <div id="resp_meta_frame_capability"></div>
+    </form>
+  </span>
+  <br>
+  <h2>Schema</h2>
+  <hr>
+    <div id="schema_viewer" /></div>
+  <hr>
+  <br>
+  <span id="event_status_change"></span>
+    <h2>Event Status Change</h2>
+    <p>Send event status change.</p>
+      <button type="button" onclick="onSendEventStatusChange()">Send</button>
+      <div id="resp_event_status_change"></div>
+    </form>
+  </span>
+  <span id="dynamicevent">
+    <h2>Send Dynamic Event</h2>
+    <p>Enter the Dynamic schema event which is following schema you made.</p>
+    <div id="dynamic_event_editor" contenteditable="true"></div>
+    <form>
+      <button type="button" onclick="onSendDynamicEvent()">Send</button>
+      <div id="resp_dynamicevent"></div>
+    </form>
+  </span>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    const onLoad = (mode) => {
+      console.log('onLoad', mode);
+      if (mode === 'dynamic_event') {
+        const editor = document.getElementById('dynamic_event_editor');
+        editor.textContent = `<?xml version="1.0" encoding="UTF-8"?><tt:MetadataStream xmlns:tt="http://www.onvif.org/ver10/schema" xmlns:ttr="https://www.onvif.org/ver20/analytics/radiometry" xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2" xmlns:tns1="http://www.onvif.org/ver10/topics" xmlns:tnssamsung="http://www.samsungcctv.com/2011/event/topics"><tt:Event><wsnt:NotificationMessage><wsnt:Topic Dialect="http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet">tns1:OpenApp/dynamic_event/TestSingleEvent</wsnt:Topic><wsnt:Message><tt:Message UtcTime="2024-04-05T00:02:21.782Z"><tt:Source><tt:SimpleItem Name="VideoSourceToken" Value="vs-0"/><tt:SimpleItem Name="RuleName" Value="Rule-1"/></tt:Source><tt:Key></tt:Key><tt:Data><tt:SimpleItem Name="State" Value="false"/></tt:Data></tt:Message></wsnt:Message></wsnt:NotificationMessage></tt:Event></tt:MetadataStream>`;
+      }
+    }
+
+    const onGetMetadataSchema = () => {
+      const checkUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/stw-cgi/eventstatus.cgi?msubmenu=metadataschema&action=view`;
+      const res = document.getElementById('resp_metadata_schema');
+      sendData(uri, 'POST', {
+        mode: 'metadata_schema',
+        data: '0'
+      }, res, checkUri);
+    }
+
+    const onGetEventStatusSchema = () => {
+      const checkUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/stw-cgi/eventstatus.cgi?msubmenu=eventstatusschema&action=view`;
+      const res = document.getElementById('resp_event_status_schema');
+      sendData(uri, 'POST', {
+        mode: 'event_status_schema',
+        data: '0'
+      }, res, checkUri);
+    }
+
+    function onGetFrameMetadataScheme() {
+      const checkUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/stw-cgi/opensdk.cgi?msubmenu=metaframeschema&action=view`;
+      const res = document.getElementById('resp_meta_frame_schema');
+      sendData(uri, 'POST', {
+        mode: 'meta_frame_schema',
+        data: '0'
+      }, res, checkUri);
+    }
+
+    function onGetFrameMetadataCapability() {
+      const checkUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/stw-cgi/opensdk.cgi?msubmenu=metaframecapability&action=view`;
+      const res = document.getElementById('resp_meta_frame_capability');
+      sendData(uri, 'POST', {
+        mode: 'meta_frame_capability',
+        data: '0'
+      }, res, checkUri);
+    }
+
+    const onSendEventStatusChange = () => {
+      const checkUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/stw-cgi/eventstatus.cgi?msubmenu=eventstatus&action=check`;
+      const res = document.getElementById('resp_event_status_change');
+      sendData(uri, 'POST', {
+        mode: 'event_status_change',
+        data: '0',
+        channel: 0
+      }, res, checkUri);
+    }
+
+    const onSendDynamicEvent = () => {
+      const editor = document.getElementById('dynamic_event_editor');
+      const res = document.getElementById('resp_dynamicevent');
+      sendData(uri, 'POST', {
+        mode: 'dynamic_event',
+        data: editor.textContent,
+        channel: 0
+      }, res);
+    }
+
+    const sendData = (uri, method, req, res, checkUri) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          if (checkUri !== '') {
+            checkData(checkUri, req.mode);
+          }
+          res.textContent = 'Pass';
+          return response.json();
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      })
+      .then(data => {
+          console.log(data.status);
+
+          const status = document.getElementById('status');
+          let statusString = '';
+          let idx = 0;
+          let isEmpty = true;
+          data.status.forEach(state => {
+            if (state.schema && state.schema.trim() !== '') {
+              statusString += `<tr><td>${state.setting_type}</td><td>${state.schema}</td></tr>`
+              isEmpty = false;
+            }
+          });
+          if (!isEmpty) {
+            schema_viewer.innerHTML = `<table><tr><th scope="col">SettingType</td><th scope="col">Schema</td></tr>${statusString}</table>`;
+          }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+
+    const checkData = (uri, mode) => {
+      if (uri === undefined) return;
+      fetch(uri).then(async res => {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let result = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          result += decoder.decode(value, { stream: true });
+        }
+        console.log(result);
+      }).catch(error => {
+        console.error('Error', error);
+      });
+    }
+
+    onLoad('event_status_change');
+    onLoad('dynamic_event');
+  </script>
+
+  <style>
+    div#dynamic_event_editor {
+      border: 1px solid #000000;
+      width: 50%;
+    }
+
+    div#resp_metadata_schema {
+      display: inline;
+      margin-left: 10px;
+    }
+
+    div#resp_event_status_schema {
+      display: inline;
+      margin-left: 10px;
+    }
+
+    div#resp_meta_frame_schema {
+      display: inline;
+      margin-left: 10px;
+    }
+
+    div#resp_meta_frame_capability {
+      display: inline;
+      margin-left: 10px;
+    }
+
+    div#resp_event_status_change {
+      display: inline;
+      margin-left: 10px;
+    }
+
+    div#resp_dynamicevent {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>

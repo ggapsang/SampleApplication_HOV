@@ -1,0 +1,24 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "test_sunapi",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "SampleComponentScheduler",
+        "EComponents::eScheduler1",
+        "EComponents::SunapiRequestScheduler"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        }
+    ]
+}

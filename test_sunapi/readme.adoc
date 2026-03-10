@@ -1,0 +1,90 @@
+== Test SUNAPI Requester
+
+This sample application is designed to test and retrieve results from
+the Hanwha Vision Open Platform's SunapiRequester. This app can send SUNAPI
+requests and get the response as an event. For more details, refer to
+*3. App Support Package* in *Hanwha_Vision_Open_Platform_SDK_API*.
+
+Related events are as follows: +
+
+*Sendable Events*
+
+* Request SUNAPI
+** Event 
++ 
+[options="header"]
+|===
+|Event type| Header file | Event type(enum)  
+
+| Request
+SUNAPI | i_sunapi_requester.h |
+ISunapiRequester::EEventType::eRequestSunapi 
+|===
+** Parameters
+*** String
++
+[cols=",,",options="header",]
+|===
+|Variable |Type |Description
+|request |string |SUNAPI request
+|===
+
+*Receivable Events*
+
+* SUNAPI response
+** Event
++
+[cols=",,",options="header",]
+|===
+|Event type |Header file |Event type(enum)
+|SUNAPI Response |i_sunapi_requester.h
+|ISunapiRequester::EEventType::eRequestSunapiDone
+|===
+
+** Parameters
+*** String
++
+[cols=",,",options="header",]
+|===
+|Variable |Type |Description
+|response |string(Json or xml) |Response to the SUNAPI request
+|===
+
+=== Prerequisites
+
+* SUNAPI compatible device
+* Hanwha Vision Open Platform 24.00.01 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. Open the camera web viewer, go to [Setup]>[Open Platform], and click
+[Install] to install the application.
+* Test
+[arabic]
+. Click [Start] in the camera web viewer to start the application.
+. SampleComponent requests
+'/stw-cgi/opensdk.cgi?msubmenu=apps&action=view' to SunapiRequester.
+. SunapiRequester returns the response to SampleComponent.
+. Check the response in the serial log.
+
+=== Result
+
+....
+Index   App ID                   App name                 Status      Installed date          Version
+0       test_sunapi             test_sunapi             Running     Fri Dec 8 02:17:13 2023 1.0
+1       sdcard_input_event      sdcard_input_event      Installed   Fri Dec 8 01:14:54 2023 1.0
+2       analytics_input_event   analytics_input_event   Installed   Fri Dec 8 01:17:22 2023 1.0
+....
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=test_sunapi SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

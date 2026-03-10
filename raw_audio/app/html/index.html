@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Raw Sample</title>
+</head>
+
+<body>
+    <h1>Audio Raw</h1>
+    <h2>Audio Raw Info</h2>
+    <form>
+        <button type="button" onclick="sendData()">Get</button>
+        <div id="conf"></div>
+    </form>
+    <hr>
+
+    <div id="sample" />
+
+    <script>
+        const sendData = () => {
+            const paths = window.location.pathname.split('/');
+            const app_id = paths[5];
+
+            const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/sample`;
+
+            fetch(uri)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Request error');
+                })
+                .then(data => {
+                    console.log(data.infos);
+
+                    const sample = document.getElementById('sample');
+                    let sampleString = '';
+                    let idx = 0;
+                    data.infos.forEach(info => {
+                        sampleString += `<tr><td>${idx++}</td><td>${info.timestamp}</td><td>${info.samplerate}</td><td>${info.codec_type}</td><td>${info.amplitude}</td></tr>`
+                    });
+                    sample.innerHTML = `<table><tr><th scope="col">Index</td><th scope="col">Timestamp</td><th scope="col">SampleRate</td><th scope="col">CodecType</td><th scope="col">Amplitude</td></tr>${sampleString}</table>`;
+                })
+                .catch(error => {
+                    console.error('Error', error);
+                })
+        }
+    </script>
+</body>
+
+</html>

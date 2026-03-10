@@ -1,0 +1,5 @@
+*.cap
+build
+models
+build_all.sh
+*/app/bin

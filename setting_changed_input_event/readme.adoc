@@ -1,0 +1,84 @@
+== setting_changed_input_event
+
+This sample application is designed to test the setting-changed-input
+events. This application receives setting changes notification events
+and leaves logs.
+
+For more details, refer to *1.4 Setting Changes Notification Events* in
+*HanwhaVision_OpenPlatform_SDK_API*.
+
+Related events are as follows:
+
+*Receivable Events*
+
+* Setting Changes Notification Events +
+When settings are changed on a web page, you can receive an event
+indicating how many times the settings were changed. The supported
+setting change events are as follows:
+** Network Interface
+** Network Port
+** Video Profile
+** Audio Config
+** Image Config
+** Video Rotation Config
+** Wisestream Config
+** Exposure AI Config
+** Storage Config
+** Language Config
+** Time Config
+** Motion Detection Config
+** Tampering Detection Config
+** Audio Detection Config
+** Sound Classification Config
+** Defocus Detection Config
+
+=== Prerequisites
+
+* Device that supports the above features
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. Open the camera web viewer, go to [Setup]>[Open Platform], and click
+[Install] to install the app.
+* Test
+[arabic]
+. Click [Start] in the camera web viewer to start the application.
+. Change the settings of the feature to be tested in the camera web
+viewer.
+. Click [Go App] in the camera web viewer.
+. Click [Get] on the application web page.
+. Check the result.
+
+=== Result
+
+Go App
+
+....
+SettingType       LatestChanged       Channel
+Analytics         2023-12-08T05:22:57 0
+Audio             2023-12-08T05:23:25 None
+Exposure AI       2023-12-08T05:32:34 0
+Image             2023-12-08T05:28:37 1
+Language          2023-12-08T05:27:59 None
+Network Interface 2023-12-08T05:32:34 None
+Network Port        2023-12-08T05:24:57 None
+Record            2023-12-08T05:51:29 0
+Time              2023-12-08T05:56:57 None
+Video Profile     2023-12-08T05:27:27 1
+Video Rotation      2023-12-08T05:29:27 0
+WiseStream        2023-12-08T05:26:27 0
+....
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=setting_changed_input_event SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

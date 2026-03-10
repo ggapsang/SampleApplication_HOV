@@ -1,0 +1,17 @@
+{
+  "Version" : "1.0.0",
+  "Name": "SampleComponent",
+  "Attributes": [
+    {
+      "enable": "",
+      "osd_color": "",
+      "transparency": "",
+      "osd": "",
+      "font_size": "",
+      "custom_font_size": "",
+      "position_x": "",
+      "position_y": "",
+      "osd_position": ""
+    }
+  ]
+}

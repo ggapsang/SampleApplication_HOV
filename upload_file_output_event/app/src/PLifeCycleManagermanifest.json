@@ -1,0 +1,28 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "upload_file_output_event",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "EComponents::eScheduler1",
+        "SampleComponentScheduler"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        },
+        {
+            "LocalComponentName": "OpenPlatform",
+            "ContainerName": "System",
+            "RemoteComponentName": "EComponents::eOpenPlatform"
+        }
+    ]
+}

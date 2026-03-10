@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <title>Snapshot JPEG</title>
+</head>
+
+<body>
+  <h1>Snapshot JPEG</h1>
+
+  <form>
+    <pre>JEPG File Path <input type="text" id="jpeg_path" value="../res/test_done.jpg" /> : storage path for the jpg file.</pre>
+    <button type="button" onclick="onSendSnapshotJPEG()">Send</button>
+    <img id="image" style="display: none" />
+    
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    const onSendSnapshotJPEG = () => {
+      const req = {
+        jpeg_path: document.getElementById('jpeg_path').value
+      };
+      sendData(uri, 'POST', req);
+    }
+
+    const sendData = async (uri, method, req) => {
+      try {
+        const res = await fetch(uri, {
+          method: method,
+          body: JSON.stringify(req)
+        });
+        
+        if(!res.ok) {
+          throw new Error('request failed');
+        }
+        
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const img = document.getElementById('image');
+        img.src = url;
+        img.style.display = 'block';
+      } catch(error) {
+        console.log('There has been a problem: ', error);
+      }
+    }
+  </script>
+
+  <style>
+    #response1 {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>

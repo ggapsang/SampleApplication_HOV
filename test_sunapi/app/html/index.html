@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SUNAPI Requester</title>
+</head>
+
+<body>
+    <h1>SUNAPI Requester</h1>
+    <h2>SUNAPI Response Info</h2>
+    <form>
+        <button type="button" onclick="request()">Request SUNAPI</button>
+        <button type="button" onclick="getAppInfo()">Check Response</button>
+    </form>
+    <hr>
+
+    <div id="infos" />
+
+    <script>
+        const paths = window.location.pathname.split('/');
+        const app_id = paths[5];
+
+        function request() {
+            var uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/request`;
+            console.log(uri);
+            const req = {
+                app_id: app_id
+            };
+            const res = document.getElementById('result');
+            sendData(uri, 'POST', req, res);
+        }
+
+        const sendData = (uri, method, req, res) => {
+            fetch(uri, {
+            method: method,
+            body: JSON.stringify(req)
+            }).then(response => {
+            console.log(response.json());
+            if (response.ok) {
+                console.log(response.json());
+                res.textContent = 'Pass';
+            } else {
+                throw new Error('request failed');
+                res.textContent = 'Fail';
+            }
+            }).catch(error => {
+            console.error('Error', error);
+            res.textContent = 'Fail: ' + error;
+            });
+        }
+
+        const getAppInfo = () => {
+            const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/response`;
+
+            fetch(uri)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Request error');
+                })
+                .then(data => {
+                    console.log(data.infos);
+
+                    const infos = document.getElementById('infos');
+                    let infoString = '';
+                    let idx = 0;
+                    data.infos.forEach(info => {
+                        infoString += `<tr><td>${idx++}</td><td>${info.app_id}</td><td>${info.app_name}</td><td>${info.status}</td><td>${info.installed_date}</td><td>${info.version}</td></tr>`
+                    });
+                    infos.innerHTML = `<table><tr><th scope="col">Index</td><th scope="col">AppID</td><th scope="col">AppName</td><th scope="col">Status</td><th scope="col">Installed Date</td><th scope="col">Version</td></tr>${infoString}</table>`;
+                })
+                .catch(error => {
+                    console.error('Error', error);
+                })
+        }
+    </script>
+</body>
+
+</html>

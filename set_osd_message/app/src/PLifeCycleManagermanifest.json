@@ -1,0 +1,28 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "set_osd_message",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "EComponents::eScheduler1",
+        "SampleComponentScheduler"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        },
+        {
+            "LocalComponentName": "SRMgrVideo_0",
+            "ContainerName": "System",
+            "RemoteComponentName": "SRMgrVideo_0"
+        }
+    ]
+}

@@ -1,0 +1,81 @@
+== display_image
+
+This sample application is designed to test the Hanwha Vision Open Platform's
+Network Manager. This app can display image on the app's web page by
+using Network Manager. For more details, refer to *3.1 Network Manager*
+in *Hanwha_Vision_Open_Platform_SDK_API*.
+
+Related events are as follows: +
+
+*Sendable Events*
+
+[cols=",,",options="header",]
+|===
+|Event type |Header file |Event type (enum)
+|Start Service |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eStartService
+
+|Stop Service |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eStopService
+
+|Send Data |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eSendData
+
+|Close Client |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eCloseClient
+|===
+
+*Receivable Events*
+
+[cols=",,",options="header",]
+|===
+|Event type |Header file |Event type (enum)
+|New Client Connected |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eNewClientConnected
+
+|Client Disconnected |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eClientDisconnected
+
+|Client Data |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eClientData
+
+|Server Data |i_app_network_manager.h
+|IAppNetworkManager::EEventType::eServerData
+|===
+
+=== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. Open the camera web viewer, go to [Setup]>[Open Platform], and click
+[Install] to install the application.
+. Click [Start] to start the app.
+* Test
+[arabic]
+. Click [Go App] in the [open Platform] menu of the web viewer.
+. click [Start Server] on the application web page.
+. Click [Request] on the application web page.
+. Click [Stop Server] on the application web page.
+
+=== Result
+
+* A "Pass" message appears below [Start Server] button.
+* A image will be displayed under *3. Display Image*.
+* A "Pass" message appears below [Stop Server] button.
+image:image/result.png[Alt text]
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=display_image SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory.
+

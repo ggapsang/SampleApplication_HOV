@@ -1,0 +1,26 @@
+{
+    "LibraryFileName": "libclassification.so",
+    "Instance": {
+        "InstanceName": "Classification",
+        "SchedulerName": "eClassificationScheduler",
+        "ReceiverNames": [
+            "AppDispatcher",
+            "RuleManager",
+            "Stub::Dispatcher::OpenSDK",
+            {
+                "SymbolName": "MetadataManager",
+                "RealName": "MetadataManager_${APPCHANNEL}"
+            }
+        ],
+        "SourceNames": [
+            {
+                "Source": "SPMgrVideoRaw_${APPCHANNEL}",
+                "GroupName": "GroupSPMgrVideoRaw2"
+            }
+        ],
+        "Channel": "${APPCHANNEL}",
+        "ModelPath": "../res/models/",
+        "SettingPath": "../storage/settings/"
+    }
+}
+

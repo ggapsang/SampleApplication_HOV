@@ -1,0 +1,150 @@
+== sdcard_output_event
+
+This sample application is designed to test the SD-card-output events.
+For more details, refer to *2.3 SD Card Events* in
+*Hanwha_Vision_Open_Platform_SDK_API*.
+
+Related events are as follows:
+
+*Sendable Events*
+
+* 2.3 SD card events +
+You can send SD card-related events. These events can be used when you
+want to use SD Card for apps. In order to use these events, the
+app_manifest.json file inside the app must have the "SDCard" in
+"Permission" array. When you add the permission and intall the app, a
+popup will appear in the process of installation, asking whether to
+grant the SDCard permission.
++
+[source,text]
+----
+  - Start SD Card
+  - Stop SD Card
+  - Format SD Card
+  - Set Exclusive Mode
+  - Get Exclusive Mode Status
+----
+** *app_manifest.json*
++
+[source,text]
+----
+{
+  "AppName": "sample",
+  "AppVersion": "1.0",
+  ...
+  "Permission": [
+    "SDCard"
+  ]
+}
+----
+** *ReceiverNames* Registration
++
+[options="header"]
+|===
+|Event type |SymbolName |RealName
+
+|Start SD Card |OpenPlatform |EComponents::eOpenPlatform
+|Stop SD Card |OpenPlatform |EComponents::eOpenPlatform
+|Format SD Card |OpenPlatform |EComponents::eOpenPlatform
+|Set Exclusive Mode |OpenPlatform |EComponents::eOpenPlatform
+|Get Exclusive Mode Status |OpenPlatform |EComponents::eOpenPlatform
+|===
+** Header file and enum event type 
++
+[options="header"]
+|===
+|Event type| header file | enum type
+
+| Start SD Card | i_p_open_platform_manager.h |
+IPOpenPlatformManager::EAppEventType::eStartSDCard 
+| Stop SD Card |
+i_p_open_platform_manager.h |
+IPOpenPlatformManager::EAppEventType::eStopSDCard 
+| Format SD Card |
+i_p_open_platform_manager.h |
+IPOpenPlatformManager::EAppEventType::eFormatSDCard 
+| Set Exclusive
+Mode | i_p_open_platform_manager.h |
+IPOpenPlatformManager::EAppEventType::eExclusiveMode 
+| Get Exclusive
+Mode Status | i_p_open_platform_manager.h |
+IPOpenPlatformManager::EAppEventType::eGetExclusiveModeStatus 
+|===
+=== Prerequisites
+
+* SD card compatible device
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+
+* Preconditions
+[arabic]
+. Open the camera web viewer, go to [Setup]>[Open Platform].
+. Click [Install] to install the app.
+. Click [Start] to start the app.
+. Insert SD Card to the device.
+* Test1: Start SD card
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. In [Sdcard Slot Index], enter the index number of the slot where
+the SD card is inserted. (Slot1 = 0, Slot2 = 1)
+. Click [Send] on the application web page.
+. Click [GetPath] to check the directory path created for the app.
+* Test2: Stop SD card
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. In [Sdcard Slot Index], enter the index number of the slot where
+the SD card is inserted. (Slot1 = 0, Slot2 = 1)
+. Click [Send] on the application web page.
+. Click [Get Result] to check the result is either 'Success' or 'Failure'.
+* Test3: Format SD card
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. In [Sdcard Slot Index], enter the index number of the slot where
+the SD card is inserted. (Slot1 = 0, Slot2 = 1)
+. Click [Send] on the application web page.
+. Click [Get Result] to check the result is either 'Success' or 'Failure'.
+* Test4: Set Exclusive Mode
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and then click [Send] on the
+application web page.
+* Test5: Get Exclusive Mode Status
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send] on the application web page.
+. Click [Get] on the application web page.
+
+=== Result
+
+* Test1: Start SD Card +
+A "Pass" message appears below the button.
+If successful, You can see the directory path created for the app when you click [GetPath]. If it failed, the directory path would be empty.
+* Test2: Stop SD Card +
+A "Pass" message appears below the button.
+Click [Get Result] to check the result is either 'Success' or 'Failure'.
+* Test3: Format SD card +
+A "Pass" message appears below the button.
+Click [Get Result] to check the result is either 'Success' or 'Failure'.
+* Test4: Set Exclusive Mode +
+A "Pass" message appears below the button.
+* Test5: Get Exclusive Mode Status +
+A "Pass" message appears below the [Send] button. "False" or
+"True" message appears below the [Get] button.
+
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=sdcard_output_event SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

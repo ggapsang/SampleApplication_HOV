@@ -1,0 +1,7 @@
+{
+	"AppName": "sdcard_output_event",
+	"AppVersion": "1.0",
+	"Permission": [
+		"SDCard"
+	]
+}

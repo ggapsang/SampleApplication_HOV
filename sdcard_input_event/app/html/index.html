@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SDCard Input Event</title>
+</head>
+
+<body>
+    <h1>SDCard Input Event</h1>
+    <h2>SDCard Info</h2>
+    <form>
+        <button type="button" onclick="sendData()">Get</button>
+        <div id="conf"></div>
+    </form>
+    <hr>
+
+    <div id="status" />
+
+    <script>
+        const sendData = () => {
+            const paths = window.location.pathname.split('/');
+            const app_id = paths[5];
+
+            const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+
+            fetch(uri)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Request error');
+                })
+                .then(data => {
+                    console.log(data.sdcard);
+
+                    const status = document.getElementById('status');
+                    let statusString = '';
+                    data.sdcard.forEach(sd => {
+                        statusString += `<tr><td>${sd.id}</td><td>${sd.state}</td></tr>`
+                    });
+                    status.innerHTML = `<table><tr><th scope="col">Index</td><th scope="col">Status</td></tr>${statusString}</table>`;
+                })
+                .catch(error => {
+                    console.error('Error', error);
+                })
+        }
+    </script>
+</body>
+
+</html>

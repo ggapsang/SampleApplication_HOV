@@ -1,0 +1,38 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "dynamic_event",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "EComponents::eScheduler1",
+        "SampleComponentScheduler"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        },
+        {
+            "LocalComponentName": "Stub::Dispatcher::Eventstatus",
+            "ContainerName": "System",
+            "RemoteComponentName": "EventstatusCGIDispatcher"
+        },
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenSDK",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenSDKCGIDispatcher"
+        },
+        {
+            "LocalComponentName": "MetadataManager_0",
+            "ContainerName": "System",
+            "RemoteComponentName": "MetadataManager_0"
+        }
+    ]
+}

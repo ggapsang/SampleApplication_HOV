@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Send Metadata</title>
+</head>
+
+<body>
+  <h1>Send Metadata</h1>
+  <p>Send Event Metadata()</p>
+  <form>
+    <pre>topic_str                <input type="text" id="topic_str" value="tns1:VideoSource/tnssamsung:send_metadata" /> : Enter the topic of event metadata.</pre>
+    <pre>source_key               <input type="text" id="source_key" value="VideoSourceToken" /> : source key of event metadata.</pre>
+    <pre>source_value             <input type="text" id="source_value" value="VideoSourceToken-0" /> : source value of event metadata.</pre>
+    <pre>data_key                 <input type="text" id="data_key" value="State" /> : data key of event metadata.</pre>
+    <pre>data_value               <input type="text" id="data_value" value="true" /> : data value of event metadata.</pre>
+    
+    <pre>element_flag             <input type="text" id="element_flag" value="0"/> : (Option) element data usage flag of event metadata.</pre>
+    <pre>element_name             <input type="text" id="element_name" value="sample_element_name" /> : (Option) name of element.</pre>
+    <pre>element_descriptor_name  <input type="text" id="element_descriptor_name" value="sample_descriptor_name" /> : (Option) descriptor name of element.</pre>
+    <pre>element_type_name        <input type="text" id="element_type_name" value="sample_type_name" /> : (Option) type name of element.</pre>
+    <pre>element_likelihood       <input type="text" id="element_likelihood" value="0.94" /> : (Option) likelihood of element.(float 0 ~ 1)</pre>
+    <button type="button" onclick="onSendEventMetadata()">Send</button>
+    <div id="response1"></div>
+  </form>
+  <p>Send Frame Metadata()</p>
+  <form>
+    <pre>object_id   <input type="text" id="object_id" value="1" /> : Enter the object id of frame metadata.</pre>
+    <pre>parent_id   <input type="text" id="parent_id" value="0" /> : parent id of frame metadata.</pre>
+    <pre>likelihood  <input type="text" id="likelihood" value="0.994629" /> : likelihood of frame metadata.(float 0 ~ 1)</pre>
+    <pre>category    <input type="text" id="category" value="0" /> : category of frame metadata.(Reference: ObjectCategory,0 ~ 14)</pre>
+
+    <pre>rect_sx     <input type="text" id="rect_sx" value="85" /> : starting point of x.</pre>
+    <pre>rect_ex     <input type="text" id="rect_ex" value="120" /> : ending point of x.</pre>
+    <pre>rect_sy     <input type="text" id="rect_sy" value="68" /> : starting point of y.</pre>
+    <pre>rect_ey     <input type="text" id="rect_ey" value="137" /> : ending point of y.</pre>
+    <button type="button" onclick="onSendFrameMetadata()">Send</button>
+    <div id="response2"></div>
+  </form>
+
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function onSendEventMetadata() {
+      const res = document.getElementById('response1');
+      sendData(uri, 'POST', {
+        mode: 'event_metadata',
+        topic_str: document.getElementById('topic_str').value,
+        source_key: document.getElementById('source_key').value,
+        source_value: document.getElementById('source_value').value,
+        data_key: document.getElementById('data_key').value,
+        data_value: document.getElementById('data_value').value,
+        element_flag: document.getElementById('element_flag').value,
+        element_name: document.getElementById('element_name').value,
+        element_descriptor_name: document.getElementById('element_descriptor_name').value,
+        element_type_name: document.getElementById('element_type_name').value,
+        element_likelihood: document.getElementById('element_likelihood').value
+      },
+      res);
+    }
+
+    function onSendFrameMetadata() {
+      const res = document.getElementById('response2');
+      sendData(uri, 'POST', {
+        mode: 'frame_metadata',
+        object_id: document.getElementById('object_id').value,
+        parent_id: document.getElementById('parent_id').value,
+        likelihood: document.getElementById('likelihood').value,
+        category: document.getElementById('category').value,
+        rect_sx: document.getElementById('rect_sx').value,
+        rect_ex: document.getElementById('rect_ex').value,
+        rect_sy: document.getElementById('rect_sy').value,
+        rect_ey: document.getElementById('rect_ey').value
+      },
+      res);
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+</body>
+
+</html>

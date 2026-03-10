@@ -1,0 +1,28 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "raw_audio",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "EComponents::eScheduler1",
+        "SampleComponentScheduler"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        },
+        {
+            "LocalComponentName": "SPMgrAudioRaw",
+            "ContainerName": "System",
+            "RemoteComponentName": "SPMgrAudioRaw"
+        }
+    ]
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Write Event log</title>
+</head>
+
+<body>
+  <h1>Write Event log</h1>
+  <p>WriteEventlog()</p>
+  <form>
+    <pre>Log       <input type="text" id="log" value="Test Log!!" /> : Enter the Event Log.</pre>
+    <button type="button" onclick="onWriteEventlog()">Send</button>
+    <div id="response"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function onWriteEventlog() {
+      const req = {
+        log: document.getElementById("log").value,
+      };
+      const res = document.getElementById('response');
+      sendData(uri, 'POST', req, res)
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+
+  <div id="app"></div>
+  <style>
+    #response {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>

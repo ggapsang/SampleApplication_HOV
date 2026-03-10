@@ -1,0 +1,10 @@
+{
+  "Version" : "1.0.0",
+  "Name": "SampleComponent",
+  "Attributes": [
+    {
+      "log": "",
+      "log_type": ""
+    }
+  ]
+}

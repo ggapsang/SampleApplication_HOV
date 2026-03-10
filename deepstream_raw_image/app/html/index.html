@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>DeepStream Test</title>
+</head>
+
+<body>
+  <h1>DeepStream Test</h1>
+
+  <div id="profile">
+    <select id="profileSelect" name="profileSelector">
+    </select>
+  </div>
+
+  <input name="start" id="start" onclick="startstream()" type="button" value="Start" />
+  <input name="stop" id="stop" onclick="stopstream()" type="button" value="Stop" disabled />
+  <input name="get" id="get" onclick="getframemeta()" type="button" value="Info" />
+
+  <div id="res" />
+</body>
+
+<script>
+  const getprofile = async () => {
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/profile`;
+
+    try {
+      const response = await fetch(uri);
+      if(response.ok) {
+        const res = await response.json();
+        res.Profiles.forEach(p => {
+          console.log(p.Profile, p.Name);
+          var option = document.createElement("option");
+          option.text = `${p.Profile}:${p.Name}`;
+          option.value = `${p.Profile}:${p.Name}`;
+          var select = document.getElementById("profileSelect");
+          select.appendChild(option);
+        });
+      }
+    } catch(error){
+      console.error('Error', error);
+    };   
+  }
+
+  getprofile();
+  
+  const startstream = () => {
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const select = document.getElementById('profileSelect');
+    const profile = select.options[select.selectedIndex].value;
+
+    console.log(profile);
+
+    const id_name = profile.split(':');
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/stream?mode=start&ProfileIndex=${id_name[0]}&ProfileName=${id_name[1]}`;
+
+    fetch(uri).then(response => {
+      if (response.ok) {
+        console.log(response);
+        const start = document.getElementById('start');
+        start.disabled = true;
+
+        const stop = document.getElementById('stop');
+        stop.disabled = false;
+      } else {
+        throw new Error('request failed');
+      }
+
+    }).catch(error => {
+      console.error('Error', error);
+    });
+  }
+
+  const getframemeta = async () => {
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/stream?mode=view`;
+
+    try {
+      const response = await fetch(uri);
+      if (response.ok) {
+        const meta = await response.json();
+
+        const res = document.getElementById('res');
+        let resString = '';
+        meta.info.forEach(i => {
+          resString += `<tr><td>${i.Sequence}</td><td>${i.Timestamp}</td><td>${i.ParentID}</td><td>${i.ObjectID}</td><td>${i.Category}</td><td>(${i.SX},${i.SY})-(${i.EX},${i.EY})</td>`;
+          res.innerHTML = `<table><tr><th scope="col">Sequence</th><th scope="col">Timestamp</th><th scope="col">ParentID</th><th scope="col">ObjectID</th><th scope="col">Category</th><th scope="col">Rect(sx,sy)-(ex,ey)</th></tr>${resString}</table>`;
+        });
+      } else {
+        throw new Error('getframemeta request error');
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  const stopstream = () => {
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/stream?mode=stop`;
+
+    fetch(uri).then(response => {
+      if (response.ok) {
+        console.log(response);
+        const res = document.getElementById('res');
+        res.innterHTML = '';
+
+        const start = document.getElementById('start');
+        start.disabled = false;
+
+        const stop = document.getElementById('stop');
+        stop.disabled = true;
+
+      } else {
+        throw new Error('request failed');
+      }
+    }).catch(error => {
+      console.error('Error', error);
+    });
+  }
+
+</script>
+
+</html>

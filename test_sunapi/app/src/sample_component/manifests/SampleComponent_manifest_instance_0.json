@@ -1,0 +1,20 @@
+{
+  "LibraryFileName": "libsample_component.so",
+  "Instance": {
+    "InstanceName": "SampleComponent",
+    "SchedulerName": "SampleComponentScheduler",
+    "ReceiverNames": [
+      "SunapiRequester",
+      "AppDispatcher"
+    ],
+    "SourceNames": [
+      {
+        "Source": "SunapiRequester",
+        "GroupName": "ReadyForUse"
+      }
+    ],
+    "Channel": 0,
+    "ModelPath": "",
+    "SettingPath": "../storage/settings/"
+  }
+}

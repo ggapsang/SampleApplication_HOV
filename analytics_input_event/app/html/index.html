@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics Event</title>
+</head>
+
+<body>
+    <h1>Analytics Event</h1>
+    <h3>Channel : 0 (default, Can't change channel number)</h3>
+
+    <h2>MotionDetector Event Info</h2>
+    <form>
+        <button type="button" onclick="onGetAnalyticsInfo()">Get</button>
+        <div id="analytics_result"></div>
+    </form>
+
+    <script>
+        const paths = window.location.pathname.split('/');
+        const app_id = paths[5];
+        const onGetAnalyticsInfo = () => {
+            const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/analytics`;
+            console.log(uri);
+            fetch(uri)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Request error');
+                })
+                .then(data => {
+                    console.log(data.infos);
+
+                    const infos = document.getElementById('analytics_result');
+                    let infoString = '';
+                    let idx = 1;
+                    data.infos.forEach(info => {
+                        infoString += `<tr><td>${idx++}</td><td>${info.event_type}</td><td>${info.message_time}</td><td>${info.state}</td><td>${info.channel}</td></tr>`
+                    });
+                    infos.innerHTML = `<table><tr><th scope="col">Index</td><th scope="col">EventType</td><th scope="col">MessageTime</td><th scope="col">State</td><th scope="col">Channel</td></tr>${infoString}</table>`;
+                })
+                .catch(error => {
+                    console.error('Error', error);
+                })
+        }
+    </script>
+</body>
+
+</html>

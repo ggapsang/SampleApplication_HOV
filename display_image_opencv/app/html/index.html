@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>OpenCV Test</title>
+    <script>
+        let imageUri;
+        const paths = window.location.pathname.split('/');
+        const app_id = paths[5];
+
+        function getFileFromServer() {
+            console.log(imageUri);
+            var imageElement = document.getElementById("image");
+            imageElement.src = imageUri;
+        }
+
+        function startServer() {
+            var port = document.getElementById("port").value;
+            imageUri = `${window.location.protocol}//${window.location.hostname}:${port}/image/jpg`;
+            var serverUri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/startserver`;
+            console.log(serverUri);
+            const req = {
+                app_id: app_id,
+                port: port,
+            };
+            const res = document.getElementById("start_result");
+            sendData(serverUri, 'POST', req, res);
+        }
+
+        const sendData = (uri, method, req, res) => {
+            fetch(uri, {
+                method: method,
+                body: JSON.stringify(req)
+            }).then(response => {
+                console.log(response.json());
+                if (response.ok) {
+                    console.log(response.json());
+                    res.textContent = 'Pass';
+                } else {
+                    throw new Error('request failed');
+                    res.textContent = 'Fail';
+                }
+            }).catch(error => {
+                console.error('Error', error);
+                res.textContent = 'Fail: ' + error;
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <p>1. Start Server</p>
+    <form>
+        <pre>port <input type="number" id="port" value="8080"/></pre>
+        <button type="button" onclick="startServer()">Start Server</button>
+        <div id="start_result"></div>
+    </form>
+    <p>2. Request Image</p>
+    <form>
+        <button type="button" onclick="getFileFromServer()">Request</button>
+    </form>
+    <p>3. Display Image</p>
+    <img id="image" src="" alt="Image">
+</body>
+
+</html>

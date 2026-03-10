@@ -1,0 +1,74 @@
+== write_event_log
+
+This sample application is designed to test the write-event-log events.
+
+Related events are as follows:
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|Write Event Log|LogManager|2009004
+|===
+** *Header* and *Event Type*  
++
+[options="header"]
+|===
+|Event type| Header file | Enum type 
+
+|Write Event
+Log|i_log_manager.h,life_cycle_manager_interface.h|LifeCycleManagerInterface::EReceivers::eLogManager
+|===
+
+=== Requirements
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+== Write Event Log
+
+The application can write event logs to the camera using this event.
+
+=== Scenario
+
+* Test
+[arabic]
+. Open the camera’s web viewer, go to [Settings]>[Open Platform], and
+click [Start] to start the application.
+. Click [Go App] in the camera web viewer.
+. Click [Send], or type the values you want and click [Send] in the
+application web page.
+* Input Data
++  
+[options="header"]
+|===
+|Input data|Type|Description 
+
+|Log
+Message|string|Log Message
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the entered log is
+sent to the camera.
+* To check whether the event log has been written, follow the path
+below:
++
+[source,text]
+----
+Web page: [Setup]>[System]>[Log]>[Event log]
+----
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=write_event_log SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

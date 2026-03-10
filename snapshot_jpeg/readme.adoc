@@ -1,0 +1,65 @@
+== snapshot_jpeg
+
+This sample application is designed to save raw image
+from the camera as JPEG format.
+
+Related events are as follows:
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|SNAPSHOT JPEG|OpenPlatform|EComponents::eOpenPlatform
+|===
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type
+
+|SNAPSHOT JPEG|i_p_open_platform_manager.h|IPOpenPlatformManager::EAppEventType::eAppSnapshotJpeg
+|===
+
+=== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+=== Scenario
+The application is equipped with default values.
+
+* Preconditions
+[arabic]
+** The default JPEG file path is "../res/test.jpg".
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] on the
+application web page.
+* Input Data 
++
+[options="header"]
+|===
+|Input data|Type|Description 
+
+|JEPG File
+Path|string|The relative path where you want to save the JEPG file.
+|===
+
+=== Result
+
+* You can view the jpeg image snapped from the camera on the web page.
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=snapshot_jpeg SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

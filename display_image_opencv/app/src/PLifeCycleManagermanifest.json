@@ -1,0 +1,24 @@
+{
+    "SkeletonPortNumber": "auto",
+    "ContainerName": "display_image_opencv",
+    "AcceptLocalOnly": false,
+    "SchedulerNames": [
+        "SampleComponentScheduler",
+        "EComponents::eScheduler1",
+        "Sch::NetworkService"
+    ],
+    "RemoteContainerNames": [
+        {
+            "ContainerName": "System",
+            "Address": "localhost",
+            "PortNumber": 8587
+        }
+    ],
+    "RemoteComponentNames": [
+        {
+            "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+            "ContainerName": "System",
+            "RemoteComponentName": "OpenAPIDispatcher"
+        }
+    ]
+}

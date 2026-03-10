@@ -1,0 +1,337 @@
+== dynamic_event
+
+This sample application is designed to test the dynamic events. This
+SampleComponent adds a dynamic schema and sends dynamic events.
+
+Related events are as follows:
+
+=== Set Event Metadata
+Dynamically adds Event Schema.
+
+* Input Event
+** *SourceNames* Registration 
++
+[options="header"]
+|===
+|Event type|Source|Group Name
+
+|Metadata Schema|OpenEventDispatcher|OpenSDK::Common::EventSource
+|Event Status Schema|OpenEventDispatcher|OpenSDK::Common::EventSource
+|Event Status Check|OpenEventDispatcher|OpenSDK::Common::EventSource
+|===
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|Metadata Schema|-|OpenEventDispatcher
+|Event Status Schema|-|OpenEventDispatcher
+|Event Status Check|-|OpenEventDispatcher
+|===
+
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type
+
+|Metadata Schema|i_eventstatus_cgi_dispatcher.h|I_EventstatusCGIDispatcher::
+EEventType::eMetadataSchema
+|Event Status Schema|i_eventstatus_cgi_dispatcher.h|I_EventstatusCGIDispatcher::
+EEventType::eEventstatusSchema
+|Event Status Check|i_eventstatus_cgi_dispatcher.h|I_EventstatusCGIDispatcher::
+EEventType::eEventStatusCheck
+|===
+
+=== Set Frame Metadata
+Dynamically adds Frame Schema.
+
+* Input Event
+** *SourceNames* Registration 
++
+[options="header"]
+|===
+|Event type|Source|Group Name
+
+|Meta Frame Schema|Stub::Dispatcher::OpenSDK|OpenSDK::System::Metacapability
+|Meta Frame Capability|Stub::Dispatcher::OpenSDK|OpenSDK::System::Metacapability
+|===
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|Meta Frame Scheme|-|Stub::Dispatcher::OpenSDK
+|Meta Frame Capability|-|Stub::Dispatcher::OpenSDK
+|===
+
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type
+
+|Meta Frame Scheme|i_opensdk_cgi_dispatcher.h|I_OpenSDKCGIDispatcher::
+EEventType::eMetaFrameSchema
+|Meta Frame Capability|i_opensdk_cgi_dispatcher.h|I_OpenSDKCGIDispatcher::
+EEventType::eMetaFrameCapability
+|===
+
+
+=== Send Metadata
+When the state of a User Component changes, the User Component sends
+the changed state to the camera.
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|Event Status Changed|-|OpenEventDispatcher
+|Send Metadata|MetadataManager|MetadataManager_0 ~ MetadataManager_#
+|Send Dynamic Metadata|MetadataManager|MetadataManager_0 ~ MetadataManager_#
+|===
+
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type
+
+|Event Status Changed|i_eventstatus_cgi_dispatcher.h|I_EventstatusCGIDispatcher::
+EEventType::eEventStatusChanged
+|Send Metadata|i_metadata_manager.h|IMetadataManager::
+EEventType::eRequestMetadata
+|Send Dynamic Metadata|i_metadata_manager.h|IMetadataManager::
+EEventType::eRequestRawMetadata
+|===
+
+==== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+== Set Event Metadata
+=== Metadata Schema
+
+This event is used to request Metadata Schema from the Camera to the User Component,
+and to add XML format Metadata Schema from the User Component to the Camera.(RTP)
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Get] on the [Get Metadata schema] tab of [Get Schema].
+
+* Input Data
+** Refer to the SendMetadataSchema(Event* event) function in sample_component.cc.
+
+==== Result
+
+* A "Pass" message appears next to the button, and the registered schema
+is displayed under the [Schema] tab.
+* To check whether the metadata schema has been set, follow the link
+below:
++
+[source,text]
+----
+http://<Camera IP>/stw-cgi/eventstatus.cgi?msubmenu=metadataschema&action=view
+----
+
+=== Event Status Schema
+
+This event is used to request EventStatus Schema from the Camera to the User Component,
+and to add EventStatus Schema from the User Component to the Camera.(SUNAPI Monitor)
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Get] on the [Get Event Status schema] tab of [Get Schema].
+
+* Input Data 
+** Refer to the SendEventStatusSchema(Event* event) function in sample_component.cc.
+
+==== Result
+
+* A "Pass" message appears next to the button, and the registered schema
+is displayed under the [Schema] tab.
+* To check whether the eventstatus schema has been added, follow the
+link below:
++
+[source,text]
+----
+http://<Camera IP>/stw-cgi/eventstatus.cgi?msubmenu=eventstatusschema&action=view
+----
+
+=== Event Status Check
+This event is used by the camera to check the initial Event State of the User Component.
+When a User Component receives the Event Status Check event, must send the Event State
+to the camera using the registered Event Status Schema.
+
+==== Scenario
+* When receiving the Event Status Check event, send the Event status of the User Component
+ to the camera.
+
+* Input Data 
+** Refer to the NotifyChannelEvent() function in sample_component.cc.
+
+==== Result
+* There is no verification scenario because it operates automatically
+when the user component starts.
+
+== Set Frame Metadata
+=== Meta Frame Scheme
+This event is used to request MetaFrame Schema from the Camera to the User Component,
+and to add MetaFrame Schema from the User Component to the Camera.
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Get] on the [Get Meta Frame schema] tab of [Get Schema].
+
+* Input Data 
+** Refer to the SendMetaFrameSchema(Event* event) function in sample_component.cc.
+
+==== Result
+
+* A "Pass" message appears next to the button, and the registered schema
+is displayed under the [Schema] tab.
+* To check whether the Metadataframe Schema has been added, follow the
+link below:
++
+[source,text]
+----
+http://<Camera IP>/stw-cgi/opensdk.cgi?msubmenu=metaframeschema&action=view
+----
+
+=== Meta Frame Capability
+
+This event is used to request MetaFrame Capability from the Camera to the User Component,
+and to add MetaFrame Capability from the User Component to the Camera.
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Get] on the [Get Meta Frame capability] tab of [Get Schema].
+
+* Input Data
+** Refer to the SendMetaFrameCapability(Event* event) function in sample_component.cc.
+
+==== Result
+
+* A "Pass" message appears next to the button, and the registered schema
+is displayed under the [Schema] tab.
+* To check whether the Metadataframe Options have been added, follow the
+link below:
++
+[source,text]
+----
+http://<Camera IP>/stw-cgi/opensdk.cgi?msubmenu=metaframecapability&action=view
+----
+
+== Send Metadata
+=== Event Status Changed
+This event send the Event State to the camera when the Event Status of the User Component changes.
+Event Status is must be created with the registered Event Status Schema structure to the camera.
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send] on the [Event Status Change] tab.
+
+* Input Data 
+** Refer to the NotifyChannelEvent(Event* event) function in sample_component.cc.
+
+==== Result
+* A "Pass" message appears next to the button, and Event Status are
+sent to the camera.
+* Possible Scenario:
++
+Sending an event and subsequently receiving Event Statusvia the SUNAPI at client is a possible scenario.
+
+=== Send Metadata
+This event send Metadata to the camera when the Event Status of the User Component changes.
+Metadata is must be created with the registered Metadata Schema structure to the camera.
+and Metadata must be created using the provided ""StreamMetadata" and "EventMetadataItem".
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send] on the [Event Status Change] tab.
+
+* Input Data 
+** Refer to the NotifyEventMetadata(Event* event) function in sample_component.cc.
+
+==== Result
+
+* A "Pass" message appears next to the button, and Metadata are
+sent to the camera.
+* Possible Scenario:
++
+Sending an event and subsequently receiving metadata via the Real-time
+Transport Protocol (RTP) at client is a possible scenario.
+
+=== Send Dynamic Metadata
+Same as "Send Metadata", but you must create the metadata yourself.
+Use only "Send Metadata" or "Send Dynamic Metadata".
+
+==== Scenario
+
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] on the application web page.
+
+* Input Data
++
+[options="header"]
+|===
+|Input data|Type|Description
+|Dynamic event|string|Enter the dynamic events you want to send in xml format.
+|===
+
+==== Result
+
+* A "Pass" message appears next to the button, and Raw Metadata are
+sent to the camera.
+* Possible Scenario:
++
+Sending an event and subsequently receiving metadata via the Real-time
+Transport Protocol (RTP) at client is a possible scenario.
+
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=dynamic_event SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

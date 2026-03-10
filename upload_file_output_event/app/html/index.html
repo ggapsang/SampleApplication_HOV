@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Upload File Output Event</title>
+</head>
+
+<body>
+  <h1>Upload File Output Event</h1>
+  <p>FTP File Upload()</p>
+  <form>
+    <pre>file_type    <input type="text" id="file_type_1" value="2" /> : Enter the file type enum.{JPEG = 0, XLSX, TXT, PNG}</pre>
+    <pre>file_path    <input type="text" id="file_path_1" value="../res/test.txt" /> : file path.(/app/bin)</pre>
+    <pre>event_info   <input type="text" id="event_info_1" value="info1" /> : event information.(file neme: {Carmera IP}_{Time stemp}_{Event Info}_{Report Name})</pre>
+    <pre>report_name  <input type="text" id="report_name_1" value="report1" /> : report name.(file neme: {Carmera IP}_{Time stemp}_{Event Info}_{Report Name})</pre>
+    <button type="button" onclick="onSendFtpFileUpload()">Send</button>
+    <div id="response1"></div>
+  </form>
+  <p>Send Email Notification()</p>
+  <form>
+    <pre>file_type    <input type="text" id="file_type_2" value="3" /> : Enter the file type enum.{NONE = 0, JPEG, XLSX, TXT, PNG}</pre>
+    <pre>file_path    <input type="text" id="file_path_2" value="../res/test.txt" /> : file path.(/app/bin)</pre>
+    <pre>subject      <input type="text" id="subject_2" value="subject2" /> : Subject of mail.</pre>
+    <pre>event_info   <input type="text" id="event_info_2" value="info2" /> : event information.(file neme: {Carmera IP}_{Time stemp}_{Event Info}_{Report Name})</pre>
+    <pre>report_name  <input type="text" id="report_name_2" value="report2" /> : report name.(file neme: {Carmera IP}_{Time stemp}_{Event Info}_{Report Name})</pre>
+    <button type="button" onclick="onSendSendEmailNotification()">Send</button>
+    <div id="response2"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function onSendFtpFileUpload() {
+      const res = document.getElementById('response1');
+      sendData(uri, 'POST', {
+        mode: 'ftp',
+        file_type: document.getElementById('file_type_1').value,
+        file_path: document.getElementById('file_path_1').value,
+        event_info: document.getElementById('event_info_1').value,
+        report_name: document.getElementById('report_name_1').value
+      },
+      res);
+    }
+
+    function onSendSendEmailNotification() {
+      const res = document.getElementById('response2');
+      sendData(uri, 'POST', {
+        mode: 'email',
+        file_type: document.getElementById('file_type_2').value,
+        file_path: document.getElementById('file_path_2').value,
+        subject: document.getElementById('subject_2').value,
+        event_info: document.getElementById('event_info_2').value,
+        report_name: document.getElementById('report_name_2').value
+      },
+      res);
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+</body>
+
+</html>

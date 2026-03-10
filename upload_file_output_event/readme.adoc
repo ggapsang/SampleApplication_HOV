@@ -1,0 +1,156 @@
+== upload_file_output_event
+
+This sample application is designed to test the upload-file event. This
+SampleComponent can upload file to FTP Server and SMTP Server.
+
+Related events are as follows:
+
+* Output Event
+** *ReceiverNames* Registration 
++
+[options="header"]
+|===
+|Event type|Symbol name|Real name
+
+|FTP File Upload|OpenPlatform|EComponents::eOpenPlatform
+|Send Email Notification|OpenPlatform|EComponents::eOpenPlatform
+|===
+** *Header* and *Event Type* 
++
+[options="header"]
+|===
+|Event type| Header file | Enum type 
+
+|FTP File
+Upload|i_p_open_platform_manager.h|IPOpenPlatformManager::EAppEventType::eAppFtpFileUpload
+|Send Email
+Notification|i_p_open_platform_manager.h|IPOpenPlatformManager::EAppEventType::eAppSendEmailNoti
+|===
+
+=== Prerequisites
+
+* Hanwha Vision Open Platform 23.00.00 or higher
+
+== FTP File Upload
+
+You can use this event to upload files to an FTP server.
+
+=== Scenario
+
+The application is equipped with a test file and default values. If you
+want to modify the file, follow the method below.
+
+* Preconditions
+[arabic]
+** The default file path is "../res/test.txt",
+. Set up an ftp file server.
++
+....
+http://<Camera IP>/wmf/index.html#/setup/event_ftpemail
+....
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] on the
+application web page.
+* Input Data 
++
+[options="header"]
+|===
+|Input data|Type|Description 
+
+|File Type|string|the file type to enum. \{JPEG = 0,
+XLSX, TXT, PNG} 
+|File Path|string|Path of the file to be transferred to
+the FTP server. 
+|Event Info|string|the event information. (file neme:
+\{Carmera IP}_\{Time stemp}_*\{Event Info}*_\{Report Name}) 
+|Report
+Name|string|the report name. (file neme: \{Carmera IP}_\{Time
+stemp}_\{Event Info}_*\{Report Name}*)
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the entered file is
+sent to the FTP server.
+* Check whether the transferred file was created on the FTP file server
+you set.
+
+== Send Email Notification
+
+You can use this event to upload files to an SMTP server.
+
+=== Scenario
+
+The application is equipped with a test file and default values. If you
+want to modify the file, follow the method below.
+
+* Preconditions
+[arabic]
+** The default file path is "../res/test.txt",
+. Set up the SMTP server
++
+....
+http://<Camera IP>/wmf/index.html#/setup/event_ftpemail
+....
+* Test
+[arabic]
+. Start the application.
+. Click [Go App] in the [Open Platform] menu of the camera web viewer.
+. Click [Send], or type the values you want and click [Send] on the
+application web page.
+* Input data 
++
+[options="header"]
+|===
+|Input data|Type|Description 
+
+|File Type|string|the file type to enum. \{NONE = 0,
+JPEG, XLSX, TXT, PNG} 
+|File Path|string|Path of the file to be
+transferred to the SMTP server. 
+|Subject|string|Subject of mail 
+|Event
+Info|string|the event information. (file neme: \{Carmera IP}_\{Time
+stemp}_*\{Event Info}*_\{Report Name}) 
+|Report Name|string|the report
+name. (file neme: \{Carmera IP}_\{Time stemp}_\{Event Info}_*\{Report
+Name}*)
+|===
+
+=== Result
+
+* A "Pass" message appears next to the button, and the entered file is
+sent to the SMTP server.
+* Check whether the transferred file was created on the SMTP server you
+set.
+
+=== Option
+. You can upload the file to the application running the cURL command.
+The upload command is as follows:
++
+....
+ cURL -v --digest -u {ID}:{PASSWORD} -F DataFile=@{UPLOAD FILE PATH};type=application/octet-stream "http://{DEVICE IP}/stw-cgi/opensdk.cgi?msubmenu=apps&action=update&AppID={APP ID}" -H "Expect:"
+
+- {ID}, {PASSWORD}: Web page account
+- {UPLOAD FILE PATH}: Path of the file to upload
+- {DEVICE IP}: IP address of the device on which the app is installed
+
+- {APP ID}: Name of the installed application to upload the file
+....
+
+* The path where the file is uploaded is the "/app" path.
+* Set the file path to "../<File Name>".
+
+=== Building Application
+
+[arabic]
+. Build application.
++
+....
+$ APP_NAME=upload_file_output_event SDK_VER=24.06.14(your SDK version) SOC=[cv5, orinnx8g_jp512] docker compose up
+$ docker compose down --remove-orphans
+....
+. Check the build results in current directory. If successful, you will be able to find the cap file.

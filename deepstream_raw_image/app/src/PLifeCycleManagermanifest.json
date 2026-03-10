@@ -1,0 +1,54 @@
+{
+  "SkeletonPortNumber": "auto",
+  "ContainerName": "deepstream_raw_image",
+  "AcceptLocalOnly": false,
+  "SchedulerNames": [
+    "SampleComponentScheduler",
+    "EComponents::eScheduler1",
+    "EComponents::SunapiRequestScheduler"
+  ],
+  "RemoteContainerNames": [
+    {
+      "ContainerName": "System",
+      "Address": "localhost",
+      "PortNumber": 8587
+    }
+  ],
+  "RemoteComponentNames": [
+    {
+      "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+      "ContainerName": "System",
+      "RemoteComponentName": "OpenAPIDispatcher"
+    },
+    {
+      "LocalComponentName": "SPMgrVideoRaw_0",
+      "ContainerName": "System",
+      "RemoteComponentName": "SPMgrVideoRaw_0"
+    },
+    {
+      "LocalComponentName": "NetworkCamera_0",
+      "ContainerName": "System",
+      "RemoteComponentName": "NetworkCamera_0"
+    },
+    {
+      "LocalComponentName": "AppProfileHandler",
+      "ContainerName": "System",
+      "RemoteComponentName": "AppProfileHandler"
+    },
+    {
+        "LocalComponentName": "Stub::Dispatcher::OpenSDK",
+        "ContainerName": "System",
+        "RemoteComponentName": "OpenSDKCGIDispatcher"
+    },
+    {
+        "LocalComponentName": "EventstatusCGIDispatcher",
+        "ContainerName": "System",
+        "RemoteComponentName": "EventstatusCGIDispatcher"
+    },
+    {
+        "LocalComponentName": "MetadataManager_0",
+        "ContainerName": "System",
+        "RemoteComponentName": "MetadataManager_0"
+    }
+  ]
+}
