@@ -216,6 +216,4 @@ class HandDetector : public Component {
   std::shared_ptr<HandDetectorInfoList> info_list_;
   ManifestInfo manifest_;
 
- protected:
-  NeuralNeworkMap nn_map_protected_;  // Phase 2에서 사용
 };

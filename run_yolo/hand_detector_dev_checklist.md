@@ -52,34 +52,34 @@
 
 ### 1-4. Attribute JSON 작성
 
-- [ ] `storage/settings/` 경로에 기본 attribute 파일 생성
-  - [ ] `confidence_threshold`: 0.5
-  - [ ] `nms_iou_threshold`: 0.45
-  - [ ] `skip_frames`: 0
-  - [ ] `mqtt_broker_host`: ""
-  - [ ] `mqtt_broker_port`: 1883
-  - [ ] `alarm_on_threshold`: 5
-  - [ ] `alarm_off_threshold`: 30
-  - [ ] `alarm_cooldown_sec`: 10
-- [ ] Initialize()에서 `PrepareAttributes()` 호출하여 attribute 로드 확인
+- [x] `Classification_default_attribute_0.json` 덮어씀 (기본 attribute)
+  - [x] `confidence_threshold`: 0.5
+  - [x] `nms_iou_threshold`: 0.45
+  - [x] `skip_frames`: 0
+  - [x] `mqtt_broker_host`: ""
+  - [x] `mqtt_broker_port`: 1883
+  - [x] `alarm_on_threshold`: 5
+  - [x] `alarm_off_threshold`: 30
+  - [x] `alarm_cooldown_sec`: 10
+- [x] Initialize()에서 `PrepareAttributes()` 호출하여 attribute 로드 확인
 
 ### 1-5. CMakeLists.txt 설정
 
-- [ ] `app/src/hand_detector/CMakeLists.txt` 작성
-  - [ ] `add_library(hand_detector MODULE hand_detector.cc yolo_postprocess.cc mqtt_logger.cc)`
-  - [ ] include 디렉토리: `includes/`
-  - [ ] 매니페스트 install 규칙 (manifest.json, instance.json, attribute.json)
-- [ ] `app/src/CMakeLists.txt`에 `add_subdirectory(hand_detector)` 추가
-- [ ] LCM, AppDispatcher 복사 규칙 확인
+- [x] `app/src/classification/CMakeLists.txt` 덮어씀
+  - [x] `add_library(hand_detector MODULE classification.cc yolo_postprocess.cc mqtt_logger.cc)`
+  - [x] include 디렉토리: `includes/`
+  - [x] 매니페스트 install 규칙 (manifest.json, instance.json, attribute.json)
+- [x] `app/src/CMakeLists.txt` — `add_subdirectory(classification)` 유지 (폴더 재활용)
+- [x] LCM, AppDispatcher 복사 규칙 확인 (기존 유지)
 
 ### 1-6. 빌드 및 배포 검증
 
-- [ ] `docker-compose.yml`에서 SOC=wn9 설정 확인
-- [ ] 빌드 실행: `cmake -DSOC=wn9 .. && make clean && make install -j4`
-- [ ] 패키징: `opensdk_packager` → `hand_detector.cap` 생성 확인
-- [ ] 카메라 설치: 웹 뷰어 또는 `opensdk_install` CLI
-- [ ] 카메라 로그에서 `HandDetector Initialize` / `Start` 메시지 확인
-- [ ] 웹 뷰어 > 오픈 플랫폼 메뉴에서 앱 표시 확인
+- [x] `docker-compose.yml` — `${SOC}`, `${APP_NAME}`, `${SDK_VER}` 환경변수 방식 유지
+- [x] 빌드 실행: `APP_NAME=hand_detector SOC=wn9 SDK_VER=25.04.09 docker-compose up`
+- [x] 패키징: `opensdk_packager` → `hand_detector.cap` 생성 확인
+- [x] 카메라 설치: 웹 뷰어 또는 `opensdk_install` CLI
+- [x] 카메라 로그에서 `HandDetector Initialize` / `Start` 메시지 확인
+- [x] 웹 뷰어 > 오픈 플랫폼 메뉴에서 앱 표시 확인
 
 **Phase 1 완료 기준**: 빈 HandDetector 컴포넌트가 카메라에서 정상 기동
 
@@ -89,7 +89,7 @@
 
 ### 2-1. 모델 파일 배치
 
-- [x] `hand_yolov11n.nb` 파일을 `app/res/ai_bin/` 경로에 배치
+- [x] `network_binary.nb` 파일을 `app/res/ai_bin/` 경로에 배치
 - [ ] 빌드 시 res 디렉토리가 패키지에 포함되는지 확인
 
 ### 2-2. NeuralNetwork 관련 멤버 변수 선언 (hand_detector.h)
@@ -108,7 +108,7 @@
 아래 순서 엄수:
 
 - [ ] **Step 1 — CreateNetwork**
-  - [ ] `GetOrCreateNetwork("hand_yolov11n.nb")` 호출
+  - [ ] `GetOrCreateNetwork("network_binary.nb")` 호출
   - [ ] NeuralNetwork 객체 생성 확인
 - [ ] **Step 2 — CreateInputTensor**
   - [ ] 텐서 이름: `"images"` (Netron 확인값)
@@ -119,7 +119,7 @@
   - [ ] `network->CreateOutputTensor(output_name)` 호출
   - [ ] 출력 텐서가 복수 헤드인 경우 각각 호출
 - [ ] **Step 4 — LoadNetwork**
-  - [ ] 모델 경로: `"../res/ai_bin/hand_yolov11n.nb"`
+  - [ ] 모델 경로: `"../res/ai_bin/network_binary.nb"`
   - [ ] mean: `{0.0, 0.0, 0.0}` (add_preproc_node: true 기준)
   - [ ] scale: `{1.0, 1.0, 1.0}` (add_preproc_node: true 기준)
   - [ ] `network->LoadNetwork(path, mean, scale)` 호출
