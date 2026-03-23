@@ -1,0 +1,25 @@
+*** Model File Name ***
+googlenet-9.onnx 
+
+*** Model URL ***
+
+https://github.com/onnx/models/blob/main/vision/classification/inception_and_googlenet/googlenet/
+
+googlenet-9.onnx : mean (123.68,116.779,103.939), variance(1.0,1.0,1.0)
+
+*** Model Description ***
+
+GoogLeNet is the name of a convolutional neural network for classification, which competed in the ImageNet Large Scale Visual Recognition Challenge in 2014.
+
+Differences:
+
+not training with the relighting data-augmentation;
+not training with the scale or aspect-ratio data-augmentation;
+uses "xavier" to initialize the weights instead of "gaussian";
+
+*** Source ***
+Caffe BVLC GoogLeNet ==> Caffe2 GoogLeNet ==> ONNX GoogLeNet
+
+*** DataSet ***
+ILSVRC2014
+

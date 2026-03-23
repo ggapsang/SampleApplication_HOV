@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>NPU API Test</title>
+</head>
+
+<body>
+  <h1>Run Neural Network</h1>
+  <p>1. CreateNetwork</p>
+  <form>
+    <pre><input type="text" id="model_name" value="google_net.bin" /> : Enter the name of the neural network model.</pre>
+    <button type="button" onclick="onCreateNetwork()">Send</button>
+    <div id="res_createnetwork"></div>
+  </form>
+  <p>2. CreateInputTensor</p>
+  <form>
+    <pre><input type="text" id="input_tensor" value="data_0" /> : name of input tensor.</pre>
+    <button type="button" onclick="onCreateInputTensor()">Send</button>
+    <div id="res_createinputtensor"></div>
+  </form>
+  <p>3. CreateOutputTensor</p>
+  <form>
+    <pre><input type="text" id="output_tensor" value="prob_1" /> : name of output tensor.</pre>
+    <button type="button" onclick="onCreateOutputTensor()">Send</button>
+    <div id="res_createoutputtensor"></div>
+  </form>
+  <p>4. LoadNetwork</p>
+  <form>
+    <button type="button" onclick="onLoadNetwork()">Send</button>
+    <div id="res_loadnetwork"></div>
+  </form>
+  <p>5. RunNetwork</p>
+  <form>
+    <button type="button" onclick="onRunNetwork()">Send</button>
+    <div id="res_runnetwork"></div>
+  </form>
+  <p>- CheckParseResult</p>
+  <form>
+    <button type="button" onclick="onCheckParseResult()">Send</button>
+    <div id="res_checkparseresult"></div>
+  </form>
+  <hr>
+  <h2>Optional API</h2>
+  <p>- GetInputTensor_Name</p>
+  <form>
+    <pre><input type="text" id="input_tensor_name" value="data_0" /> : Enter the name of input tensor.</pre>
+    <button type="button" onclick="onGetInputTensor_name()">Send</button>
+    <div id="res_getinputtensor_index"></div>
+  </form>
+  <p>- GetOutputTensor_Name</p>
+  <form>
+    <pre><input type="text" id="output_tensor_name" value="prob_1" /> : name of output tensor.</pre>
+    <button type="button" onclick="onGetOutputTensor_name()">Send</button>
+    <div id="res_getoutputtensor_index"></div>
+  </form>
+  <p>- GetInputTensor_Index</p>
+  <form>
+    <pre><input type="text" id="input_tensor_index" value="0" /> : Index of input tensor.</pre>
+    <button type="button" onclick="onGetInputTensor_index()">Send</button>
+    <div id="res_getinputtensor_name"></div>
+  </form>
+  <p>- GetOutputTensor_Index</p>
+  <form>
+    <pre><input type="text" id="output_tensor_index" value="0" /> : Index of output tensor.</pre>
+    <button type="button" onclick="onGetOutputTensor_index()">Send</button>
+    <div id="res_getoutputtensor_name"></div>
+  </form>
+  <p>- GetAllInputTensors</p>
+  <form>
+    <button type="button" onclick="onGetAllInputTensors()">Send</button>
+    <div id="res_getallinputtensors"></div>
+  </form>
+  <p>- GetAllOutputTensors</p>
+  <form>
+    <button type="button" onclick="onGetAllOutputTensors()">Send</button>
+    <div id="res_getalloutputtensors"></div>
+  </form>
+  <p>- GetInputTensorCount</p>
+  <form>
+    <button type="button" onclick="onGetInputTensorCount()">Send</button>
+    <div id="res_getinputtensorcount"></div>
+  </form>
+  <p>- GetOutputTensorCount</p>
+  <form>
+    <button type="button" onclick="onGetOutputTensorCount()">Send</button>
+    <div id="res_getoutputtensorcount"></div>
+  </form>
+  <hr>
+  <h2>Unload Network</h2>
+  <p>- UnloadNetwork</p>
+  <form>
+    <button type="button" onclick="onUnloadNetwork()">Send</button>
+    <div id="res_unloadnetwork"></div>
+  </form>
+
+  <script>
+    const paths = window.location.pathname.split('/');
+    const app_id = paths[5];
+
+    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+
+    function onCreateNetwork() {
+      const req = {
+        mode: 'create_network',
+        model_name: document.getElementById('model_name').value
+      }
+      const res = document.getElementById('res_createnetwork');
+      sendData(uri, 'POST', req, res);
+    }
+    function onCreateInputTensor() {
+      const req = {
+        mode: 'create_input_tensor',
+        input_tensor: document.getElementById('input_tensor').value
+      }
+      const res = document.getElementById('res_createinputtensor');
+      sendData(uri, 'POST', req, res);
+    }
+    function onCreateOutputTensor() {
+      const req = {
+        mode: 'create_output_tensor',
+        output_tensor: document.getElementById('output_tensor').value
+      }
+      const res = document.getElementById('res_createoutputtensor');
+      sendData(uri, 'POST', req, res);
+    }
+    function onLoadNetwork() {
+      const req = {
+        mode: 'load_network'
+      }
+      const res = document.getElementById('res_loadnetwork');
+      sendData(uri, 'POST', req, res);
+    }
+    function onRunNetwork() {
+      const req = {
+        mode: 'run_network'
+      }
+      const res = document.getElementById('res_runnetwork');
+      sendData(uri, 'POST', req, res);
+    
+    }
+    function onCheckParseResult() {
+      const req = {
+        mode: 'check_parse_result',
+      }
+      const res = document.getElementById('res_checkparseresult');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetInputTensor_name() {
+      const req = {
+        mode: 'get_input_tensor_name',
+        input_tensor: document.getElementById('input_tensor_name').value
+      }
+      const res = document.getElementById('res_getinputtensor_index');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetOutputTensor_name() {
+      const req = {
+        mode: 'get_output_tensor_name',
+        output_tensor: document.getElementById('output_tensor_name').value
+      }
+      const res = document.getElementById('res_getoutputtensor_index');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetInputTensor_index() {
+      const req = {
+        mode: 'get_input_tensor_index',
+        input_tensor: document.getElementById('input_tensor_index').value
+      }
+      const res = document.getElementById('res_getinputtensor_name');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetOutputTensor_index() {
+      const req = {
+        mode: 'get_output_tensor_index',
+        output_tensor: document.getElementById('output_tensor_index').value
+      }
+      const res = document.getElementById('res_getoutputtensor_name');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetAllInputTensors() {
+      const req = {
+        mode: 'get_all_input_tensors',
+      }
+      const res = document.getElementById('res_getallinputtensors');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetAllOutputTensors() {
+      const req = {
+        mode: 'get_all_output_tensors',
+      }
+      const res = document.getElementById('res_getalloutputtensors');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetInputTensorCount() {
+      const req = {
+        mode: 'get_input_tensor_count',
+      }
+      const res = document.getElementById('res_getinputtensorcount');
+      sendData(uri, 'POST', req, res);
+    }
+    function onGetOutputTensorCount() {
+      const req = {
+        mode: 'get_output_tensor_count',
+      }
+      const res = document.getElementById('res_getoutputtensorcount');
+      sendData(uri, 'POST', req, res);
+    }
+    function onUnloadNetwork() {
+      const req = {
+        mode: 'unload_network'
+      }
+      const res = document.getElementById('res_unloadnetwork');
+      sendData(uri, 'POST', req, res);
+    }
+
+    const sendData = (uri, method, req, res) => {
+      fetch(uri, {
+        method: method,
+        body: JSON.stringify(req)
+      }).then(response => {
+        if (response.ok) {
+          console.log(response.json());
+          res.textContent = 'Pass';
+        } else {
+          throw new Error('request failed');
+          res.textContent = 'Fail';
+        }
+      }).catch(error => {
+        console.error('Error', error);
+        res.textContent = 'Fail: ' + error;
+      });
+    }
+  </script>
+
+  <div id="app"></div>
+  <style>
+    #res_createnetwork {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_createinputtensor {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_createoutputtensor {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_loadnetwork {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_runnetwork {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_checkparseresult {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getinputtensor_index {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getoutputtensor_index {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getinputtensor_name {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getoutputtensor_name {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getallinputtensors {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getalloutputtensors {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getinputtensorcount {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_getoutputtensorcount {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+  <style>
+    #res_unloadnetwork {
+      display: inline;
+      margin-left: 10px;
+    }
+  </style>
+</body>
+
+</html>
