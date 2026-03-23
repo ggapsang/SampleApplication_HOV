@@ -145,48 +145,48 @@
 
 ### 3-1. Raw Video 이벤트 수신 구현
 
-- [ ] `ProcessAEvent()`에 이벤트 핸들러 추가
+- [x] `ProcessAEvent()`에 이벤트 핸들러 추가
   ```
   case (int32_t)IPStreamProviderManagerVideoRaw::EEventType::eVideoRawData:
   ```
-- [ ] 이벤트에서 `IPVideoFrameRaw` 추출
-- [ ] `shared_ptr<RawImage>` 획득
-- [ ] `run_flag == false`이면 즉시 return (추론 미시작 상태)
+- [x] 이벤트에서 `IPVideoFrameRaw` 추출
+- [x] `shared_ptr<RawImage>` 획득
+- [x] `run_flag == false`이면 즉시 return (추론 미시작 상태)
 
 ### 3-2. 프레임 선택 로직
 
-- [ ] 멀티 이미지 프레임 처리 (Classification 샘플 Inference() 참조)
-  - [ ] `images_cnt > 1`인 경우: 3840x2160 미만 && MAX_SIZE 이하 프레임 선택
-  - [ ] 단일 이미지: 그대로 사용
-- [ ] `Tensor::Create()` → `rgb->Allocate(*image)` 호출
-- [ ] Allocate 실패 시 return
+- [x] 멀티 이미지 프레임 처리 (Classification 샘플 Inference() 참조)
+  - [x] `images_cnt > 1`인 경우: 3840x2160 미만 && MAX_SIZE 이하 프레임 선택
+  - [x] 단일 이미지: 그대로 사용
+- [x] `Tensor::Create()` → `rgb->Allocate(*image)` 호출
+- [x] Allocate 실패 시 return
 
 ### 3-3. skip_frames 로직 (선택)
 
-- [ ] 프레임 카운터 변수 선언
-- [ ] `frame_count % (skip_frames + 1) != 0`이면 추론 건너뛰기
-- [ ] attribute에서 `skip_frames` 값 로드
+- [x] 프레임 카운터 변수 선언
+- [x] `frame_count % (skip_frames + 1) != 0`이면 추론 건너뛰기
+- [x] attribute에서 `skip_frames` 값 로드
 
 ### 3-4. PreProcess 구현
 
 **방식 A — SDK Tensor::Resize (기본)**:
-- [ ] `network->GetInputTensor(0)` 에서 입력 텐서 크기 획득
-- [ ] `img_size_t size = { .width = tensor->Length(0), .height = tensor->Length(1) }`
-- [ ] `rgb->Resize(*input_tensor, size)` 호출
+- [x] `network->GetInputTensor(0)` 에서 입력 텐서 크기 획득
+- [x] `img_size_t size = { .width = tensor->Length(0), .height = tensor->Length(1) }`
+- [x] `rgb->Resize(*input_tensor, size)` 호출
 
 **방식 B — OpenCV letterbox (권장, 정확도 향상)**:
-- [ ] OpenCV 라이브러리 링크 (CMakeLists.txt에 추가, 또는 SDK 내장 OpenCV 확인)
-- [ ] RawImage → cv::Mat 변환 (YUV→RGB 또는 직접 RGB 사용)
-- [ ] cv::resize로 비율 유지 리사이즈
-- [ ] cv::copyMakeBorder로 패딩 (pad_value=114)
-- [ ] scale_x, scale_y, pad_x, pad_y 값 저장 (PostProcess 좌표 역변환용)
-- [ ] 결과를 입력 텐서 메모리에 복사
+- [x] OpenCV 라이브러리 링크 (CMakeLists.txt에 추가, 또는 SDK 내장 OpenCV 확인)
+- [x] RawImage → cv::Mat 변환 (YUV→RGB 또는 직접 RGB 사용)
+- [x] cv::resize로 비율 유지 리사이즈
+- [x] cv::copyMakeBorder로 패딩 (pad_value=114)
+- [x] scale_x, scale_y, pad_x, pad_y 값 저장 (PostProcess 좌표 역변환용)
+- [x] 결과를 입력 텐서 메모리에 복사
 
 ### 3-5. 빌드 및 검증
 
-- [ ] 빌드 성공 확인
-- [ ] DebugLog로 "PreProcess completed" + 프레임 해상도 출력 확인
-- [ ] 프레임 수신 주기(FPS) DebugLog로 확인
+- [x] 빌드 성공 확인
+- [x] DebugLog로 "PreProcess completed" + 프레임 해상도 출력 확인
+- [x] 프레임 수신 주기(FPS) DebugLog로 확인
 
 **Phase 3 완료 기준**: Raw Video 프레임 수신 및 PreProcess 정상 동작 로그
 
@@ -196,22 +196,22 @@
 
 ### 4-1. 추론 실행
 
-- [ ] `stat_t stat = {0,}` 선언
-- [ ] `network->RunNetwork(stat)` 호출
-- [ ] 반환값 체크 (false 시 에러 로그)
-- [ ] stat에서 추론 시간(ms) 추출 → 디버그 로그
+- [x] `stat_t stat = {0,}` 선언
+- [x] `network->RunNetwork(stat)` 호출
+- [x] 반환값 체크 (false 시 에러 로그)
+- [x] stat에서 추론 시간(ms) 추출 → 디버그 로그
 
 ### 4-2. 출력 텐서 파싱
 
-- [ ] `network->GetOutputTensorCount()`로 출력 텐서 수 확인
-- [ ] 각 출력 텐서에 대해:
-  - [ ] `network->GetOutputTensor(k)` 획득
-  - [ ] `output_tensor->VirtAddr()`로 float* 데이터 포인터 획득
-  - [ ] `output_tensor->Length(0)`, `Length(1)` 등으로 shape 확인
+- [x] `network->GetOutputTensorCount()`로 출력 텐서 수 확인
+- [x] 각 출력 텐서에 대해:
+  - [x] `network->GetOutputTensor(k)` 획득
+  - [x] `output_tensor->VirtAddr()`로 float* 데이터 포인터 획득
+  - [x] `output_tensor->Length(0)`, `Length(1)` 등으로 shape 확인
 
 ### 4-3. YOLOv11 디코딩 로직 (yolo_postprocess.h / .cc)
 
-- [ ] 결과 구조체 정의:
+- [x] 결과 구조체 정의:
   ```cpp
   struct Detection {
       float x1, y1, x2, y2;  // 원본 해상도 기준 bbox
@@ -219,36 +219,36 @@
       int class_id;
   };
   ```
-- [ ] 출력 텐서 shape 기반 디코딩 (YAML 스펙 참조):
-  - [ ] shape `[1, 5, 8400]` 기준: dim1의 row0~3 = cx,cy,w,h / row4 = confidence
-  - [ ] 전체 8400개 후보 순회
-- [ ] confidence_threshold 이하 필터링
-- [ ] center_xywh → xyxy 좌표 변환
-- [ ] NMS 구현:
-  - [ ] confidence 기준 내림차순 정렬
-  - [ ] IoU 계산 함수 구현
-  - [ ] iou_threshold 초과하는 중복 박스 제거
-- [ ] 좌표 역변환 (모델 입력 해상도 → 원본 프레임 해상도):
-  - [ ] letterbox 패딩 오프셋 제거 (pad_x, pad_y)
-  - [ ] 리사이즈 비율 역산 (scale_x, scale_y)
-  - [ ] 원본 해상도 범위 클램핑 (0 ~ width, 0 ~ height)
-- [ ] max_detections(100) 초과 시 상위 N개만 유지
+- [x] 출력 텐서 shape 기반 디코딩 (YAML 스펙 참조):
+  - [x] shape `[1, 5, 8400]` 기준: dim1의 row0~3 = cx,cy,w,h / row4 = confidence
+  - [x] 전체 8400개 후보 순회
+- [x] confidence_threshold 이하 필터링
+- [x] center_xywh → xyxy 좌표 변환
+- [x] NMS 구현:
+  - [x] confidence 기준 내림차순 정렬
+  - [x] IoU 계산 함수 구현
+  - [x] iou_threshold 초과하는 중복 박스 제거
+- [x] 좌표 역변환 (모델 입력 해상도 → 원본 프레임 해상도):
+  - [x] letterbox 패딩 오프셋 제거 (pad_x, pad_y)
+  - [x] 리사이즈 비율 역산 (scale_x, scale_y)
+  - [x] 원본 해상도 범위 클램핑 (0 ~ width, 0 ~ height)
+- [x] max_detections(100) 초과 시 상위 N개만 유지
 
 ### 4-4. 추론 파이프라인 통합
 
-- [ ] Inference() 메서드에서 순서 통합:
+- [x] Inference() 메서드에서 순서 통합:
   ```
   PreProcess() → Execute() → PostProcess()
   ```
-- [ ] 실패 시 DebugLog + break
-- [ ] 각 단계별 소요 시간 측정 (std::chrono)
+- [x] 실패 시 DebugLog + break
+- [x] 각 단계별 소요 시간 측정 (std::chrono)
 
 ### 4-5. 빌드 및 검증
 
-- [ ] 빌드 성공 확인
-- [ ] DebugLog로 탐지 결과 출력: bbox 좌표, confidence, 탐지 수
-- [ ] 손 객체 앞에서 탐지 수 변화 확인
-- [ ] 빈 프레임(손 없음) 시 탐지 수 0 확인
+- [x] 빌드 성공 확인
+- [x] DebugLog로 탐지 결과 출력: bbox 좌표, confidence, 탐지 수
+- [x] 손 객체 앞에서 탐지 수 변화 확인
+- [x] 빈 프레임(손 없음) 시 탐지 수 0 확인
 
 **Phase 4 완료 기준**: 손 탐지 결과가 DebugLog에 정상 출력
 

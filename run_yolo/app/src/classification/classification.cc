@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <memory>
+#include <cmath>
 #include <ctime>
 
 #include "data_context.h"
@@ -169,8 +170,7 @@ bool HandDetector::LoadNeuralNetwork()
       AppendLog("LoadNeuralNetwork: output_tensor shape=[" +
                 std::to_string(out->Length(0)) + "," +
                 std::to_string(out->Length(1)) + "," +
-                std::to_string(out->Length(2)) + "] total_size=" +
-                std::to_string(out->Size()));
+                std::to_string(out->Length(2)) + "]");
     } else {
       AppendLog("LoadNeuralNetwork: WARN GetOutputTensor(0) null after load");
     }
@@ -623,40 +623,42 @@ bool HandDetector::PostProcess()
   const int N = 8400;
   const float bbox_scale = 2.4987835884094f;
   const float bbox_zp    = -128.0f;
-  const float conf_scale = 0.029688827693462f;
-  const float conf_zp    = 28.0f;
+  // conf_scale / conf_zp: dequantize 제거로 현재 미사용
+  // const float conf_scale = 0.029688827693462f;
+  // const float conf_zp    = 84.0f;
 
   // 첫 번째 실행 시 텐서 크기 및 raw 샘플 값 출력
-  static bool pp_logged = false;
-  if (!pp_logged) {
-    pp_logged = true;
-    AppendLog("PostProcess: tensor_size=" + std::to_string(output_tensor->Size()) +
-              " expected=" + std::to_string(5 * N * (int)sizeof(float)));
+  static int pp_logged = 0;
+  if (++pp_logged <= 3) {
+    AppendLog("PostProcess: tensor shape=[" +
+              std::to_string(output_tensor->Length(0)) + "," +
+              std::to_string(output_tensor->Length(1)) + "," +
+              std::to_string(output_tensor->Length(2)) + "] expected=[5,8400]");
     // bbox raw 샘플 (row0 앞 3개)
     AppendLog("PostProcess: raw_bbox[0..2]=" +
               std::to_string(raw[0]) + "," +
               std::to_string(raw[1]) + "," +
               std::to_string(raw[2]));
-    // conf raw 샘플 (row4 앞 3개)
-    AppendLog("PostProcess: raw_conf[0..2]=" +
-              std::to_string(raw[4 * N + 0]) + "," +
-              std::to_string(raw[4 * N + 1]) + "," +
-              std::to_string(raw[4 * N + 2]));
-    AppendLog("PostProcess: dequant bbox=(raw-(" + std::to_string(bbox_zp) + "))*" +
-              std::to_string(bbox_scale) +
-              " conf=(raw-" + std::to_string(conf_zp) + ")*" +
-              std::to_string(conf_scale));
+    // conf raw 샘플 (AoS: anchor 0~4의 conf 채널)
+    AppendLog("PostProcess: raw_conf[0..4]=" +
+              std::to_string(raw[0*5+4]) + "," +
+              std::to_string(raw[1*5+4]) + "," +
+              std::to_string(raw[2*5+4]) + "," +
+              std::to_string(raw[3*5+4]) + "," +
+              std::to_string(raw[4*5+4]));
   }
 
   std::vector<float> bbox_data(4 * N);
   std::vector<float> conf_data(N);
 
-  for (int row = 0; row < 4; row++)
-    for (int i = 0; i < N; i++)
-      bbox_data[row * N + i] = (raw[row * N + i] - bbox_zp) * bbox_scale;
-
-  for (int i = 0; i < N; i++)
-    conf_data[i] = (raw[4 * N + i] - conf_zp) * conf_scale;
+  // 텐서 레이아웃: [8400, 5, 1] AoS — raw[i*5+0]=cx, [i*5+1]=cy, [i*5+2]=w, [i*5+3]=h, [i*5+4]=conf
+  for (int i = 0; i < N; i++) {
+    bbox_data[0 * N + i] = (raw[i * 5 + 0] - bbox_zp) * bbox_scale;  // cx
+    bbox_data[1 * N + i] = (raw[i * 5 + 1] - bbox_zp) * bbox_scale;  // cy
+    bbox_data[2 * N + i] = (raw[i * 5 + 2] - bbox_zp) * bbox_scale;  // w
+    bbox_data[3 * N + i] = (raw[i * 5 + 3] - bbox_zp) * bbox_scale;  // h
+    conf_data[i]         = 1.0f / (1.0f + std::exp(-raw[i * 5 + 4])); // conf: sigmoid(logit)
+  }
 
   // 주기적으로 conf 범위 및 dequantize 샘플 로그
   static int pp_cnt = 0;

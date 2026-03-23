@@ -28,7 +28,7 @@ class HandDetector : public Component {
 
   struct AppAttributeInfo {
    public:
-    float confidence_threshold = 0.5f;
+    float confidence_threshold = 0.75f;
     float nms_iou_threshold = 0.45f;
     int skip_frames = 0;
     std::string mqtt_broker_host;
@@ -38,7 +38,7 @@ class HandDetector : public Component {
     int alarm_cooldown_sec = 10;
 
     void reset() {
-      confidence_threshold = 0.5f;
+      confidence_threshold = 0.75f;
       nms_iou_threshold = 0.45f;
       skip_frames = 0;
       mqtt_broker_host.clear();
