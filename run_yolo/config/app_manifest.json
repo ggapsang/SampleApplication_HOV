@@ -1,0 +1,9 @@
+{
+	"AppName": "run_neural_network",
+	"AppVersion": "1.0",
+	"Permission": [
+		"SDCard",
+		"Device"
+	],
+	"ChannelType": "Single"
+}

@@ -1,0 +1,43 @@
+{
+  "SkeletonPortNumber": "auto",
+  "ContainerName": "run_neural_network",
+  "AcceptLocalOnly": false,
+  "SchedulerNames": [
+    "eScheduler1",
+    "eClassificationScheduler"
+  ],
+  "RemoteContainerNames": [
+    {
+      "ContainerName": "System",
+      "Address": "localhost",
+      "PortNumber": 8587
+    }
+  ],
+  "RemoteComponentNames": [
+    {
+      "LocalComponentName": "Stub::Dispatcher::OpenAPI",
+      "ContainerName": "System",
+      "RemoteComponentName": "OpenAPIDispatcher"
+    },
+    {
+      "LocalComponentName": "RuleManager",
+      "ContainerName": "System",
+      "RemoteComponentName": "RuleManager"
+    },
+    {
+      "LocalComponentName": "SPMgrVideoRaw_${APPCHANNEL}",
+      "ContainerName": "System",
+      "RemoteComponentName": "SPMgrVideoRaw_${APPCHANNEL}"
+    },
+    {
+      "LocalComponentName": "Stub::Dispatcher::OpenSDK",
+      "ContainerName": "System",
+      "RemoteComponentName": "OpenSDKCGIDispatcher"
+  },
+    {
+      "LocalComponentName": "MetadataManager_${APPCHANNEL}",
+      "ContainerName": "System",
+      "RemoteComponentName": "MetadataManager_${APPCHANNEL}"
+    }
+  ]
+}

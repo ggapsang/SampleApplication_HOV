@@ -1,0 +1,14 @@
+{
+    "Version": "1.0.0",
+    "Attributes": [
+        {
+            "model_name": "google_net.bin",
+            "input_tensor_names": "data_0",
+            "output_tensor_names": "prob_1",
+            "get_index_input_name": "data_0",
+            "get_index_output_name": "prob_1",
+            "get_name_input_index": "0",
+            "get_name_output_index": "0"
+        }
+    ]
+}
