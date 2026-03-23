@@ -121,40 +121,64 @@ bool HandDetector::LoadNeuralNetwork()
   const std::string model_name = "network_binary.nb";
   const std::string model_path = std::string("../res/ai_bin/") + model_name;
 
+  AppendLog("LoadNeuralNetwork: start (path=" + model_path + ")");
+
   NeuralNetwork* network = GetOrCreateNetwork(model_name);
   if (!network) {
-    AppendLog("LoadNeuralNetwork: GetOrCreateNetwork failed");
+    AppendLog("LoadNeuralNetwork: FAIL GetOrCreateNetwork");
     return false;
   }
 
   const auto& input_tensor = network->CreateInputTensor("images");
   if (!input_tensor) {
-    AppendLog("LoadNeuralNetwork: CreateInputTensor failed (name=images)");
+    AppendLog("LoadNeuralNetwork: FAIL CreateInputTensor(images)");
     return false;
   }
+  AppendLog("LoadNeuralNetwork: CreateInputTensor OK");
 
-  const auto& bbox_tensor = network->CreateOutputTensor("model.23/Mul_2_output_0");
-  if (!bbox_tensor) {
-    AppendLog("LoadNeuralNetwork: CreateOutputTensor failed (bbox)");
+  const auto& output_tensor = network->CreateOutputTensor("output0");
+  if (!output_tensor) {
+    AppendLog("LoadNeuralNetwork: FAIL CreateOutputTensor(output0)");
     return false;
   }
-
-  const auto& conf_tensor = network->CreateOutputTensor("model.23/Sigmoid_output_0");
-  if (!conf_tensor) {
-    AppendLog("LoadNeuralNetwork: CreateOutputTensor failed (conf)");
-    return false;
-  }
+  AppendLog("LoadNeuralNetwork: CreateOutputTensor OK");
 
   auto mean  = std::vector<float>{0.0f, 0.0f, 0.0f};
-  auto scale = std::vector<float>{0.003922f, 0.003922f, 0.003922f};
+  auto scale = std::vector<float>{1.0f, 1.0f, 1.0f};
+  AppendLog("LoadNeuralNetwork: calling LoadNetwork (mean=0,0,0 scale=1,1,1)");
+
   if (!network->LoadNetwork(model_path, mean, scale)) {
-    AppendLog("LoadNeuralNetwork: LoadNetwork failed (path=" + model_path + ")");
+    AppendLog("LoadNeuralNetwork: FAIL LoadNetwork (path=" + model_path + ")");
     return false;
+  }
+
+  // 텐서 shape 확인
+  {
+    const std::shared_ptr<Tensor>& in(network->GetInputTensor(0));
+    if (in) {
+      AppendLog("LoadNeuralNetwork: input_tensor shape=[" +
+                std::to_string(in->Length(0)) + "," +
+                std::to_string(in->Length(1)) + "," +
+                std::to_string(in->Length(2)) + "]");
+    } else {
+      AppendLog("LoadNeuralNetwork: WARN GetInputTensor(0) null after load");
+    }
+
+    const std::shared_ptr<Tensor>& out(network->GetOutputTensor(0));
+    if (out) {
+      AppendLog("LoadNeuralNetwork: output_tensor shape=[" +
+                std::to_string(out->Length(0)) + "," +
+                std::to_string(out->Length(1)) + "," +
+                std::to_string(out->Length(2)) + "] total_size=" +
+                std::to_string(out->Size()));
+    } else {
+      AppendLog("LoadNeuralNetwork: WARN GetOutputTensor(0) null after load");
+    }
   }
 
   npu_load_info_.model_name_          = model_name;
   npu_load_info_.input_tensor_names_  = "images";
-  npu_load_info_.output_tensor_names_ = "model.23/Mul_2_output_0+model.23/Sigmoid_output_0";
+  npu_load_info_.output_tensor_names_ = "output0";
 
   AppendLog("LoadNeuralNetwork: OK (model=" + model_name + ")");
   WriteEventLog("HandDetector: NPU model loaded OK");
@@ -369,10 +393,19 @@ void HandDetector::ProcessRawVideo(Event* event)
   if (event == nullptr || event->IsReply()) return;
 
   auto& network_map = GetAllNetworks();
-  if (network_map.empty()) return;
+  if (network_map.empty()) {
+    static int empty_map_cnt = 0;
+    if (++empty_map_cnt == 1)
+      AppendLog("ProcessRawVideo: WARN network_map empty (model not loaded?)");
+    return;
+  }
 
   auto blob = event->GetBlobArgument();
   event->ClearBaseObjectArgument();
+
+  static int blob_log_cnt = 0;
+  if (++blob_log_cnt == 1)
+    AppendLog("ProcessRawVideo: first blob size=" + std::to_string(blob.GetSize()));
 
   std::pair<std::variant<BaseObject*, char*>, uint64_t> ret(
       (char*)blob.GetRawData(), blob.GetSize());
@@ -382,6 +415,9 @@ void HandDetector::ProcessRawVideo(Event* event)
 
   std::shared_ptr<RawImage> img(raw_frame->GetRawImage());
   if (img == nullptr) {
+    static int null_img_cnt = 0;
+    if (++null_img_cnt == 1)
+      AppendLog("ProcessRawVideo: WARN GetRawImage returned null");
     blob.ClearResource();
     return;
   }
@@ -410,39 +446,76 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
     if (image->width != 0 && image->height != 0) images_cnt++;
   }
 
+  static int inf_cnt = 0;
+  ++inf_cnt;
+
+  if (inf_cnt == 1)
+    AppendLog("Inference: planes=" + std::to_string(images_cnt) +
+              " pts=" + std::to_string(img->pts));
+
   if (images_cnt > 1) {
+    bool selected = false;
     for (auto* image = img.get(); image; image = image->next) {
       if (image->width < 3840 && image->height < 2160) {
         if (image->width <= kMaxSize && image->height <= kMaxSize) {
-          if (!rgb->Allocate(*image)) return;
+          if (inf_cnt == 1)
+            AppendLog("Inference: multi-plane selected w=" + std::to_string(image->width) +
+                      " h=" + std::to_string(image->height));
+          if (!rgb->Allocate(*image)) {
+            AppendLog("Inference #" + std::to_string(inf_cnt) +
+                      ": FAIL Allocate (multi-plane) w=" + std::to_string(image->width) +
+                      " h=" + std::to_string(image->height));
+            return;
+          }
           frame_width_  = image->width;
           frame_height_ = image->height;
+          selected = true;
           break;
         }
       }
     }
+    if (!selected) {
+      AppendLog("Inference #" + std::to_string(inf_cnt) +
+                ": FAIL no suitable plane found (planes=" + std::to_string(images_cnt) + ")");
+      return;
+    }
   } else {
-    if (!rgb->Allocate(*img)) return;
+    if (inf_cnt == 1)
+      AppendLog("Inference: single-plane w=" + std::to_string(img->width) +
+                " h=" + std::to_string(img->height));
+    if (!rgb->Allocate(*img)) {
+      AppendLog("Inference #" + std::to_string(inf_cnt) +
+                ": FAIL Allocate (single) w=" + std::to_string(img->width) +
+                " h=" + std::to_string(img->height));
+      return;
+    }
     frame_width_  = img->width;
     frame_height_ = img->height;
   }
 
   raw_pts_ = img->pts;
 
-  static int inf_cnt = 0;
-  ++inf_cnt;
   if (inf_cnt == 1)
-    AppendLog("Inference first frame: w=" + std::to_string(frame_width_) +
+    AppendLog("Inference: first frame allocated w=" + std::to_string(frame_width_) +
               " h=" + std::to_string(frame_height_));
 
   auto t0 = chrono::steady_clock::now();
-  if (!PreProcess(rgb)) { AppendLog("FAIL: PreProcess #" + std::to_string(inf_cnt)); return; }
+  if (!PreProcess(rgb)) {
+    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PreProcess");
+    return;
+  }
 
   auto t1 = chrono::steady_clock::now();
-  if (!Execute()) { AppendLog("FAIL: Execute #" + std::to_string(inf_cnt)); return; }
+  if (!Execute()) {
+    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL Execute");
+    return;
+  }
 
   auto t2 = chrono::steady_clock::now();
-  if (!PostProcess()) { AppendLog("FAIL: PostProcess #" + std::to_string(inf_cnt)); return; }
+  if (!PostProcess()) {
+    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PostProcess");
+    return;
+  }
 
   auto t3 = chrono::steady_clock::now();
 
@@ -452,7 +525,8 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
 
   static int log_count = 0;
   if (++log_count % 10 == 0) {
-    AppendLog("Timing: pre=" + std::to_string((int)pre_ms) +
+    AppendLog("Timing #" + std::to_string(inf_cnt) +
+              ": pre=" + std::to_string((int)pre_ms) +
               "ms inf=" + std::to_string((int)inf_ms) +
               "ms post=" + std::to_string((int)post_ms) +
               "ms det=" + std::to_string(last_detection_count_));
@@ -462,23 +536,50 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
 bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
-  if (!network) return false;
+  if (!network) {
+    AppendLog("PreProcess: FAIL GetNetwork(\"" + npu_load_info_.model_name_ + "\") returned null");
+    return false;
+  }
 
   const std::shared_ptr<Tensor>& input_tensor(network->GetInputTensor(0));
-  if (!input_tensor) return false;
+  if (!input_tensor) {
+    AppendLog("PreProcess: FAIL GetInputTensor(0) returned null");
+    return false;
+  }
 
   img_size_t size = {
     .width  = input_tensor->Length(0),
     .height = input_tensor->Length(1)
   };
 
-  if (!rgb->Resize(*input_tensor, size)) return false;
+  static bool resize_logged = false;
+  if (!resize_logged) {
+    AppendLog("PreProcess: input_tensor dim=[" +
+              std::to_string(size.width) + "x" + std::to_string(size.height) + "]");
+    resize_logged = true;
+  }
+
+  if (!rgb->Resize(*input_tensor, size)) {
+    AppendLog("PreProcess: FAIL Resize to [" +
+              std::to_string(size.width) + "x" + std::to_string(size.height) + "]" +
+              " src=[" + std::to_string(frame_width_) + "x" + std::to_string(frame_height_) + "]");
+    return false;
+  }
 
   if (frame_width_ > 0 && frame_height_ > 0) {
     letterbox_scale_x_ = static_cast<float>(frame_width_)  / static_cast<float>(size.width);
     letterbox_scale_y_ = static_cast<float>(frame_height_) / static_cast<float>(size.height);
     letterbox_pad_x_ = 0.0f;
     letterbox_pad_y_ = 0.0f;
+
+    static bool scale_logged = false;
+    if (!scale_logged) {
+      AppendLog("PreProcess: letterbox scale_x=" + std::to_string(letterbox_scale_x_) +
+                " scale_y=" + std::to_string(letterbox_scale_y_) +
+                " (frame " + std::to_string(frame_width_) + "x" + std::to_string(frame_height_) +
+                " -> model " + std::to_string(size.width) + "x" + std::to_string(size.height) + ")");
+      scale_logged = true;
+    }
   }
 
   return true;
@@ -487,32 +588,101 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
 bool HandDetector::Execute()
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
-  if (!network) return false;
+  if (!network) {
+    AppendLog("Execute: FAIL GetNetwork(\"" + npu_load_info_.model_name_ + "\") returned null");
+    return false;
+  }
 
   stat_t stat = {0,};
-  return network->RunNetwork(stat);
+  bool ok = network->RunNetwork(stat);
+  if (!ok)
+    AppendLog("Execute: FAIL RunNetwork returned false");
+  return ok;
 }
 
 bool HandDetector::PostProcess()
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
-  if (!network) return false;
+  if (!network) {
+    AppendLog("PostProcess: FAIL GetNetwork(\"" + npu_load_info_.model_name_ + "\") returned null");
+    return false;
+  }
 
-  const std::shared_ptr<Tensor>& bbox_tensor(network->GetOutputTensor(0));
-  const std::shared_ptr<Tensor>& conf_tensor(network->GetOutputTensor(1));
-  if (!bbox_tensor || !conf_tensor) return false;
+  const std::shared_ptr<Tensor>& output_tensor(network->GetOutputTensor(0));
+  if (!output_tensor) {
+    AppendLog("PostProcess: FAIL GetOutputTensor(0) returned null");
+    return false;
+  }
 
-  float* bbox_data = static_cast<float*>(bbox_tensor->VirtAddr());
-  float* conf_data = static_cast<float*>(conf_tensor->VirtAddr());
-  if (!bbox_data || !conf_data) return false;
+  float* raw = static_cast<float*>(output_tensor->VirtAddr());
+  if (!raw) {
+    AppendLog("PostProcess: FAIL VirtAddr() returned null");
+    return false;
+  }
 
-  const int num_detections = 8400;
+  const int N = 8400;
+  const float bbox_scale = 2.4987835884094f;
+  const float bbox_zp    = -128.0f;
+  const float conf_scale = 0.029688827693462f;
+  const float conf_zp    = 28.0f;
+
+  // 첫 번째 실행 시 텐서 크기 및 raw 샘플 값 출력
+  static bool pp_logged = false;
+  if (!pp_logged) {
+    pp_logged = true;
+    AppendLog("PostProcess: tensor_size=" + std::to_string(output_tensor->Size()) +
+              " expected=" + std::to_string(5 * N * (int)sizeof(float)));
+    // bbox raw 샘플 (row0 앞 3개)
+    AppendLog("PostProcess: raw_bbox[0..2]=" +
+              std::to_string(raw[0]) + "," +
+              std::to_string(raw[1]) + "," +
+              std::to_string(raw[2]));
+    // conf raw 샘플 (row4 앞 3개)
+    AppendLog("PostProcess: raw_conf[0..2]=" +
+              std::to_string(raw[4 * N + 0]) + "," +
+              std::to_string(raw[4 * N + 1]) + "," +
+              std::to_string(raw[4 * N + 2]));
+    AppendLog("PostProcess: dequant bbox=(raw-(" + std::to_string(bbox_zp) + "))*" +
+              std::to_string(bbox_scale) +
+              " conf=(raw-" + std::to_string(conf_zp) + ")*" +
+              std::to_string(conf_scale));
+  }
+
+  std::vector<float> bbox_data(4 * N);
+  std::vector<float> conf_data(N);
+
+  for (int row = 0; row < 4; row++)
+    for (int i = 0; i < N; i++)
+      bbox_data[row * N + i] = (raw[row * N + i] - bbox_zp) * bbox_scale;
+
+  for (int i = 0; i < N; i++)
+    conf_data[i] = (raw[4 * N + i] - conf_zp) * conf_scale;
+
+  // 주기적으로 conf 범위 및 dequantize 샘플 로그
+  static int pp_cnt = 0;
+  if (++pp_cnt % 30 == 1) {
+    float conf_min = conf_data[0], conf_max = conf_data[0];
+    for (int i = 1; i < N; i++) {
+      if (conf_data[i] < conf_min) conf_min = conf_data[i];
+      if (conf_data[i] > conf_max) conf_max = conf_data[i];
+    }
+    AppendLog("PostProcess #" + std::to_string(pp_cnt) +
+              ": conf range=[" + std::to_string(conf_min) +
+              "," + std::to_string(conf_max) + "]" +
+              " threshold=" + std::to_string(info_list_->app_attribute_info.confidence_threshold));
+    // dequantize 후 bbox 샘플 (첫 anchor cx,cy,w,h)
+    AppendLog("PostProcess: dequant_bbox[0]=" +
+              std::to_string(bbox_data[0]) + "," +
+              std::to_string(bbox_data[N]) + "," +
+              std::to_string(bbox_data[2*N]) + "," +
+              std::to_string(bbox_data[3*N]));
+  }
 
   auto& attr = info_list_->app_attribute_info;
   auto detections = YoloPostProcess(
-      bbox_data,
-      conf_data,
-      num_detections,
+      bbox_data.data(),
+      conf_data.data(),
+      N,
       attr.confidence_threshold,
       attr.nms_iou_threshold,
       letterbox_scale_x_,
@@ -526,13 +696,17 @@ bool HandDetector::PostProcess()
 
   if (!detections.empty()) {
     std::string det_log = "Det(" + std::to_string(detections.size()) + "):";
-    for (size_t i = 0; i < std::min(detections.size(), size_t(3)); i++) {
+    for (size_t i = 0; i < std::min(detections.size(), size_t(5)); i++) {
       const auto& d = detections[i];
       det_log += " [" + std::to_string((int)d.x1) + "," + std::to_string((int)d.y1) +
-                 "," + std::to_string((int)d.x2) + "," + std::to_string((int)d.y2) +
+                 "-" + std::to_string((int)d.x2) + "," + std::to_string((int)d.y2) +
                  " c=" + std::to_string((int)(d.confidence * 100)) + "%]";
     }
     AppendLog(det_log);
+  } else {
+    static int zero_det_cnt = 0;
+    if (++zero_det_cnt % 30 == 1)
+      AppendLog("PostProcess #" + std::to_string(pp_cnt) + ": det=0 (no hand detected)");
   }
 
   return true;
