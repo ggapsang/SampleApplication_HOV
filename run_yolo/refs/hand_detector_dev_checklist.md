@@ -90,52 +90,52 @@
 ### 2-1. 모델 파일 배치
 
 - [x] `network_binary.nb` 파일을 `app/res/ai_bin/` 경로에 배치
-- [ ] 빌드 시 res 디렉토리가 패키지에 포함되는지 확인
+- [x] 빌드 시 res 디렉토리가 패키지에 포함되는지 확인
 
 ### 2-2. NeuralNetwork 관련 멤버 변수 선언 (hand_detector.h)
 
-- [ ] `NeuralNeworkMap nn_map_` (네트워크 객체 맵)
-- [ ] `NnLoadInfo` 구조체 (model_name, input_tensor_names, output_tensor_names)
-- [ ] `bool run_flag` (추론 시작/중지 플래그)
-- [ ] `uint64_t raw_pts` (프레임 PTS)
-- [ ] 헬퍼 함수 선언:
-  - [ ] `NeuralNetwork* GetOrCreateNetwork(const std::string& name)`
-  - [ ] `NeuralNetwork* GetNetwork(const std::string& name)`
-  - [ ] `void RemoveNetwork(const std::string& name)`
+- [x] `NeuralNeworkMap nn_map_` (네트워크 객체 맵)
+- [x] `NnLoadInfo` 구조체 (model_name, input_tensor_names, output_tensor_names)
+- [x] `bool run_flag` (추론 시작/중지 플래그)
+- [x] `uint64_t raw_pts` (프레임 PTS)
+- [x] 헬퍼 함수 선언:
+  - [x] `NeuralNetwork* GetOrCreateNetwork(const std::string& name)`
+  - [x] `NeuralNetwork* GetNetwork(const std::string& name)`
+  - [x] `void RemoveNetwork(const std::string& name)`
 
 ### 2-3. NPU 초기화 시퀀스 구현 (Initialize 또는 Start에서 호출)
 
 아래 순서 엄수:
 
-- [ ] **Step 1 — CreateNetwork**
-  - [ ] `GetOrCreateNetwork("network_binary.nb")` 호출
-  - [ ] NeuralNetwork 객체 생성 확인
-- [ ] **Step 2 — CreateInputTensor**
-  - [ ] 텐서 이름: `"images"` (Netron 확인값)
-  - [ ] `network->CreateInputTensor("images")` 호출
-  - [ ] 반환값 nullptr 체크
-- [ ] **Step 3 — CreateOutputTensor**
-  - [ ] 텐서 이름: YAML 스펙의 `output_tensors[0].name` 참조 (PM 제공)
-  - [ ] `network->CreateOutputTensor(output_name)` 호출
-  - [ ] 출력 텐서가 복수 헤드인 경우 각각 호출
-- [ ] **Step 4 — LoadNetwork**
-  - [ ] 모델 경로: `"../res/ai_bin/network_binary.nb"`
-  - [ ] mean: `{0.0, 0.0, 0.0}` (add_preproc_node: true 기준)
-  - [ ] scale: `{1.0, 1.0, 1.0}` (add_preproc_node: true 기준)
-  - [ ] `network->LoadNetwork(path, mean, scale)` 호출
-  - [ ] 반환값 false 시 에러 로그 출력 후 return
+- [x] **Step 1 — CreateNetwork**
+  - [x] `GetOrCreateNetwork("network_binary.nb")` 호출
+  - [x] NeuralNetwork 객체 생성 확인
+- [x] **Step 2 — CreateInputTensor**
+  - [x] 텐서 이름: `"images"` (Netron 확인값)
+  - [x] `network->CreateInputTensor("images")` 호출
+  - [x] 반환값 nullptr 체크
+- [x] **Step 3 — CreateOutputTensor**
+  - [x] 텐서 이름: YAML 스펙의 `output_tensors[0].name` 참조 (PM 제공)
+  - [x] `network->CreateOutputTensor(output_name)` 호출
+  - [x] 출력 텐서가 복수 헤드인 경우 각각 호출
+- [x] **Step 4 — LoadNetwork**
+  - [x] 모델 경로: `"../res/ai_bin/network_binary.nb"`
+  - [x] mean: `{0.0, 0.0, 0.0}` (add_preproc_node: true 기준)
+  - [x] scale: `{1.0, 1.0, 1.0}` (add_preproc_node: true 기준)
+  - [x] `network->LoadNetwork(path, mean, scale)` 호출
+  - [x] 반환값 false 시 에러 로그 출력 후 return
 
 ### 2-4. DebugLog 유틸리티 구현
 
-- [ ] Classification 샘플의 `DebugLog()` 패턴 참조
-- [ ] `SendTargetEvents(ILogManager::remote_debug_message_group, eRemoteDebugMessage, ...)` 호출
-- [ ] `std::cout`에도 동시 출력 (카메라 콘솔 디버깅용)
+- [x] Classification 샘플의 `DebugLog()` 패턴 참조
+- [x] `SendTargetEvents(ILogManager::remote_debug_message_group, eRemoteDebugMessage, ...)` 호출
+- [x] `std::cout`에도 동시 출력 (카메라 콘솔 디버깅용)
 
 ### 2-5. 빌드 및 검증
 
-- [ ] 빌드 성공 확인
-- [ ] 카메라 설치 후 로그에서 `"Load Network"` 성공 메시지 확인
-- [ ] 에러 발생 시 텐서 이름/모델 경로 재확인
+- [x] 빌드 성공 확인
+- [x] 카메라 설치 후 로그에서 `"Load Network"` 성공 메시지 확인
+- [x] 에러 발생 시 텐서 이름/모델 경로 재확인
 
 **Phase 2 완료 기준**: NPU에 모델 정상 로드, LoadNetwork 성공 로그
 

@@ -187,6 +187,13 @@ class HandDetector : public Component {
   NeuralNetwork* GetNetwork(const std::string& name);
   NeuralNeworkMap& GetAllNetworks();
   void RemoveNetwork(const std::string& name);
+  bool LoadNeuralNetwork();
+
+  void ProcessRawVideo(Event* event);
+  void Inference(std::shared_ptr<RawImage> img);
+  bool PreProcess(std::shared_ptr<Tensor> rgb);
+  bool Execute();
+  bool PostProcess();
 
  private:
   void DebugLog(const char* format, ...) {
@@ -215,6 +222,14 @@ class HandDetector : public Component {
   NeuralNeworkMap nn_map_;
   bool run_flag_ = false;
   uint64_t raw_pts_ = 0;
+  int frame_count_ = 0;
+  uint32_t frame_width_ = 0;
+  uint32_t frame_height_ = 0;
+  float letterbox_scale_x_ = 1.0f;
+  float letterbox_scale_y_ = 1.0f;
+  float letterbox_pad_x_ = 0.0f;
+  float letterbox_pad_y_ = 0.0f;
+  int last_detection_count_ = 0;
   std::shared_ptr<HandDetectorInfoList> info_list_;
   ManifestInfo manifest_;
   std::vector<std::string> debug_log_;

@@ -97,7 +97,7 @@ output_tensors:
 
   # APL_AI Compiler 설정 (postprocess_file.yml)
   apl_ai_postproc:
-    add_postproc_node: false              # TODO: postprocess_file.yml 확인
+    add_postproc_node: true              # TODO: postprocess_file.yml 확인
     force_float32: true
     description: "true → NPU 출력이 FLOAT32 역양자화 완료 상태"
 
