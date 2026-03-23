@@ -180,6 +180,8 @@ class HandDetector : public Component {
   bool ParseManifest(const std::string& manifest_path, ManifestInfo& info);
   virtual void RegisterOpenAPIURI();
   bool HandleStreamRequest(OpenAppSerializable* param, const std::string& body);
+  void WriteEventLog(const std::string& message);
+  void AppendLog(const std::string& msg);
 
   NeuralNetwork* GetOrCreateNetwork(const std::string& name);
   NeuralNetwork* GetNetwork(const std::string& name);
@@ -215,5 +217,6 @@ class HandDetector : public Component {
   uint64_t raw_pts_ = 0;
   std::shared_ptr<HandDetectorInfoList> info_list_;
   ManifestInfo manifest_;
+  std::vector<std::string> debug_log_;
 
 };

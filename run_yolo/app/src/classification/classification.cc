@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <memory>
+#include <ctime>
 
 #include "data_context.h"
 #include "i_data_manager.h"
@@ -31,6 +32,34 @@ HandDetector::~HandDetector()
 {
 }
 
+void HandDetector::AppendLog(const std::string& msg)
+{
+  char ts[32];
+  time_t t = time(NULL);
+  struct tm* tm_info = localtime(&t);
+  strftime(ts, sizeof(ts), "%H:%M:%S", tm_info);
+  std::string entry = std::string("[") + ts + "] " + msg;
+  debug_log_.push_back(entry);
+  if (debug_log_.size() > 200) debug_log_.erase(debug_log_.begin());
+  DebugLog("%s", entry.c_str());
+}
+
+void HandDetector::WriteEventLog(const std::string& message)
+{
+  AppendLog("WriteEventLog: " + message);
+  auto* log = new Log(
+      Log::LogType::EVENT_LOG,
+      Log::LogDetailType::EVENT_OPENAPP,
+      GetChannel(),
+      static_cast<uint32_t>(time(NULL)),
+      Platform_Std_Refine::String(message.c_str()));
+
+  SendNoReplyEvent("LogManager",
+      static_cast<int32_t>(ILogManager::EEvent::eWrite),
+      0,
+      log);
+}
+
 bool HandDetector::Initialize()
 {
   info_list_ = std::make_shared<HandDetectorInfoList>(GetStringComponentVersion());
@@ -43,7 +72,9 @@ bool HandDetector::Initialize()
     RegisterOpenAPIURI();
   }
 
+  AppendLog("Initialize called (channel=" + std::to_string(GetChannel()) + ")");
   DebugLog("HandDetector Initialize (channel=%d)", GetChannel());
+  WriteEventLog("HandDetector Initialize OK");
   return true;
 }
 
@@ -81,7 +112,7 @@ void HandDetector::RegisterOpenAPIURI()
   methods.push_back("GET");
 
   auto uriRequest = new ("OpenAPI") IAppDispatcher::OpenAPIRegistrar(
-      String("/stream"), GetInstanceName(), methods);
+      String("/configuration"), GetInstanceName(), methods);
 
   SendNoReplyEvent("AppDispatcher",
                    static_cast<int32_t>(IAppDispatcher::EEventType::eRegisterCommand),
@@ -91,12 +122,16 @@ void HandDetector::RegisterOpenAPIURI()
 void HandDetector::Start()
 {
   base::Start();
+  AppendLog("Start called");
   DebugLog("HandDetector Start");
+  WriteEventLog("HandDetector Start OK");
 }
 
 bool HandDetector::Finalize()
 {
+  AppendLog("Finalize called");
   DebugLog("HandDetector Finalize");
+  WriteEventLog("HandDetector Finalize");
   return Component::Finalize();
 }
 
@@ -111,7 +146,7 @@ bool HandDetector::ProcessAEvent(Event* event)
       auto param = static_cast<OpenAppSerializable*>(event->GetBaseObjectArgument());
       std::string path_info = param->GetFCGXParam("PATH_INFO").c_str();
 
-      if (path_info == "/stream") {
+      if (path_info == "/configuration") {
         std::string method = param->GetMethod();
         if (method == "POST" || method == "GET") {
           auto body = param->GetRequestBody();
@@ -173,21 +208,52 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     }
   }
 
-  if (mode == "start") {
+  if (mode == "log") {
+    std::string resp = "[";
+    for (size_t i = 0; i < debug_log_.size(); ++i) {
+      // JSON string escape
+      std::string s = debug_log_[i];
+      std::string escaped;
+      for (char c : s) {
+        if (c == '"') escaped += "\\\"";
+        else if (c == '\\') escaped += "\\\\";
+        else escaped += c;
+      }
+      resp += "\"" + escaped + "\"";
+      if (i + 1 < debug_log_.size()) resp += ",";
+    }
+    resp += "]";
+    param->SetStatusCode(200);
+    param->SetResponseBody(resp);
+    return true;
+  }
+  else if (mode == "clear") {
+    debug_log_.clear();
+    AppendLog("Log cleared");
+    param->SetStatusCode(200);
+    param->SetResponseBody("{\"result\":\"ok\"}");
+    return true;
+  }
+  else if (mode == "start") {
     run_flag_ = true;
+    AppendLog("mode=start: inference started");
     DebugLog("HandDetector: inference started");
+    WriteEventLog("HandDetector: inference started");
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"running\"}");
     return true;
   }
   else if (mode == "stop") {
     run_flag_ = false;
+    AppendLog("mode=stop: inference stopped");
     DebugLog("HandDetector: inference stopped");
+    WriteEventLog("HandDetector: inference stopped");
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"stopped\"}");
     return true;
   }
   else if (mode == "info") {
+    AppendLog("mode=info requested");
     auto& attr = info_list_->app_attribute_info;
     std::string resp =
         std::string("{") +
@@ -228,6 +294,8 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     JsonUtility::get(doc, "alarm_cooldown_sec", attr.alarm_cooldown_sec);
 
     WriteAttributes(info_list_.get(), this->GetObjectName());
+    AppendLog("mode=config updated: conf=" + std::to_string(attr.confidence_threshold) +
+              " nms=" + std::to_string(attr.nms_iou_threshold));
     DebugLog("HandDetector: config updated (conf=%.2f, nms=%.2f)",
              attr.confidence_threshold, attr.nms_iou_threshold);
     param->SetStatusCode(200);

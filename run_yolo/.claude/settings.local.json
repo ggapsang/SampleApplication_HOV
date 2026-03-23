@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/opensdk -type f -name *.h -path */include/*)",
+      "Bash(grep -r \"class ILogManager\\\\|struct Log\" /c/opensdk --include=*.h)",
+      "Bash(xargs grep:*)",
+      "Bash(find /c/opensdk -type d -name include*)",
+      "Bash(grep -r i_log_manager.h /c/opensdk --include=*.h --include=*.cc)",
+      "Bash(grep -r LogDetailType /c/opensdk/SampleApplication --include=*.cc --include=*.h)",
+      "Bash(grep -r SendNoReplyEvent /c/opensdk/SampleApplication --include=*.cc)"
+    ]
+  }
+}

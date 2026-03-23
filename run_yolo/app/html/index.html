@@ -1,330 +1,163 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>NPU API Test</title>
+  <title>Hand Detector Debug Console</title>
+  <style>
+    body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; margin: 20px; }
+    h1 { color: #4ec9b0; margin-bottom: 4px; }
+    .subtitle { color: #808080; font-size: 13px; margin-bottom: 20px; }
+    .section { margin-bottom: 16px; }
+    .section-title { color: #569cd6; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    .status-bar { background: #252526; border: 1px solid #3c3c3c; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; }
+    .status-label { color: #808080; }
+    .status-val { color: #ce9178; margin-right: 20px; }
+    .status-running { color: #4ec9b0; }
+    .status-stopped { color: #f44747; }
+    button {
+      background: #0e639c; color: #fff; border: none; padding: 6px 16px;
+      margin-right: 8px; margin-bottom: 8px; cursor: pointer; border-radius: 3px; font-size: 13px;
+    }
+    button:hover { background: #1177bb; }
+    button.danger { background: #6c2020; }
+    button.danger:hover { background: #8c2020; }
+    button.secondary { background: #3c3c3c; }
+    button.secondary:hover { background: #505050; }
+    #log-panel {
+      width: 100%; height: 400px; background: #0d0d0d; color: #4ec9b0;
+      border: 1px solid #3c3c3c; padding: 10px; box-sizing: border-box;
+      font-size: 12px; line-height: 1.6; overflow-y: auto; white-space: pre-wrap;
+      border-radius: 4px; resize: vertical;
+    }
+    .response-bar { background: #252526; border: 1px solid #3c3c3c; padding: 6px 10px; border-radius: 3px; font-size: 12px; color: #9cdcfe; margin-top: 8px; min-height: 24px; }
+    .auto-refresh-label { color: #808080; font-size: 12px; margin-left: 8px; vertical-align: middle; }
+    input[type=checkbox] { vertical-align: middle; margin-right: 4px; }
+  </style>
 </head>
-
 <body>
-  <h1>Run Neural Network</h1>
-  <p>1. CreateNetwork</p>
-  <form>
-    <pre><input type="text" id="model_name" value="google_net.bin" /> : Enter the name of the neural network model.</pre>
-    <button type="button" onclick="onCreateNetwork()">Send</button>
-    <div id="res_createnetwork"></div>
-  </form>
-  <p>2. CreateInputTensor</p>
-  <form>
-    <pre><input type="text" id="input_tensor" value="data_0" /> : name of input tensor.</pre>
-    <button type="button" onclick="onCreateInputTensor()">Send</button>
-    <div id="res_createinputtensor"></div>
-  </form>
-  <p>3. CreateOutputTensor</p>
-  <form>
-    <pre><input type="text" id="output_tensor" value="prob_1" /> : name of output tensor.</pre>
-    <button type="button" onclick="onCreateOutputTensor()">Send</button>
-    <div id="res_createoutputtensor"></div>
-  </form>
-  <p>4. LoadNetwork</p>
-  <form>
-    <button type="button" onclick="onLoadNetwork()">Send</button>
-    <div id="res_loadnetwork"></div>
-  </form>
-  <p>5. RunNetwork</p>
-  <form>
-    <button type="button" onclick="onRunNetwork()">Send</button>
-    <div id="res_runnetwork"></div>
-  </form>
-  <p>- CheckParseResult</p>
-  <form>
-    <button type="button" onclick="onCheckParseResult()">Send</button>
-    <div id="res_checkparseresult"></div>
-  </form>
-  <hr>
-  <h2>Optional API</h2>
-  <p>- GetInputTensor_Name</p>
-  <form>
-    <pre><input type="text" id="input_tensor_name" value="data_0" /> : Enter the name of input tensor.</pre>
-    <button type="button" onclick="onGetInputTensor_name()">Send</button>
-    <div id="res_getinputtensor_index"></div>
-  </form>
-  <p>- GetOutputTensor_Name</p>
-  <form>
-    <pre><input type="text" id="output_tensor_name" value="prob_1" /> : name of output tensor.</pre>
-    <button type="button" onclick="onGetOutputTensor_name()">Send</button>
-    <div id="res_getoutputtensor_index"></div>
-  </form>
-  <p>- GetInputTensor_Index</p>
-  <form>
-    <pre><input type="text" id="input_tensor_index" value="0" /> : Index of input tensor.</pre>
-    <button type="button" onclick="onGetInputTensor_index()">Send</button>
-    <div id="res_getinputtensor_name"></div>
-  </form>
-  <p>- GetOutputTensor_Index</p>
-  <form>
-    <pre><input type="text" id="output_tensor_index" value="0" /> : Index of output tensor.</pre>
-    <button type="button" onclick="onGetOutputTensor_index()">Send</button>
-    <div id="res_getoutputtensor_name"></div>
-  </form>
-  <p>- GetAllInputTensors</p>
-  <form>
-    <button type="button" onclick="onGetAllInputTensors()">Send</button>
-    <div id="res_getallinputtensors"></div>
-  </form>
-  <p>- GetAllOutputTensors</p>
-  <form>
-    <button type="button" onclick="onGetAllOutputTensors()">Send</button>
-    <div id="res_getalloutputtensors"></div>
-  </form>
-  <p>- GetInputTensorCount</p>
-  <form>
-    <button type="button" onclick="onGetInputTensorCount()">Send</button>
-    <div id="res_getinputtensorcount"></div>
-  </form>
-  <p>- GetOutputTensorCount</p>
-  <form>
-    <button type="button" onclick="onGetOutputTensorCount()">Send</button>
-    <div id="res_getoutputtensorcount"></div>
-  </form>
-  <hr>
-  <h2>Unload Network</h2>
-  <p>- UnloadNetwork</p>
-  <form>
-    <button type="button" onclick="onUnloadNetwork()">Send</button>
-    <div id="res_unloadnetwork"></div>
-  </form>
+  <h1>Hand Detector Debug Console</h1>
+  <div class="subtitle" id="app-uri">URI: 로딩 중...</div>
+
+  <div class="section">
+    <div class="section-title">상태</div>
+    <div class="status-bar" id="status-bar">Info를 눌러 상태를 조회하세요.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">컨트롤</div>
+    <button onclick="doStart()">▶ Start</button>
+    <button onclick="doStop()" class="danger">■ Stop</button>
+    <button onclick="doInfo()" class="secondary">ℹ Info</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">디버그 로그</div>
+    <button onclick="fetchLogs()">⟳ Refresh Logs</button>
+    <button onclick="clearLogs()" class="danger">✕ Clear Logs</button>
+    <label class="auto-refresh-label">
+      <input type="checkbox" id="auto-refresh" onchange="toggleAutoRefresh()"> 3초마다 자동 갱신
+    </label>
+    <textarea id="log-panel" readonly>(Refresh Logs 버튼을 클릭하세요)</textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-title">마지막 응답</div>
+    <div class="response-bar" id="last-response">-</div>
+  </div>
 
   <script>
     const paths = window.location.pathname.split('/');
-    const app_id = paths[5];
+    const app_id = paths[5] || 'hand_detector';
+    const base_uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+    document.getElementById('app-uri').textContent = 'URI: ' + base_uri;
 
-    const uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
+    let autoRefreshTimer = null;
 
-    function onCreateNetwork() {
-      const req = {
-        mode: 'create_network',
-        model_name: document.getElementById('model_name').value
-      }
-      const res = document.getElementById('res_createnetwork');
-      sendData(uri, 'POST', req, res);
-    }
-    function onCreateInputTensor() {
-      const req = {
-        mode: 'create_input_tensor',
-        input_tensor: document.getElementById('input_tensor').value
-      }
-      const res = document.getElementById('res_createinputtensor');
-      sendData(uri, 'POST', req, res);
-    }
-    function onCreateOutputTensor() {
-      const req = {
-        mode: 'create_output_tensor',
-        output_tensor: document.getElementById('output_tensor').value
-      }
-      const res = document.getElementById('res_createoutputtensor');
-      sendData(uri, 'POST', req, res);
-    }
-    function onLoadNetwork() {
-      const req = {
-        mode: 'load_network'
-      }
-      const res = document.getElementById('res_loadnetwork');
-      sendData(uri, 'POST', req, res);
-    }
-    function onRunNetwork() {
-      const req = {
-        mode: 'run_network'
-      }
-      const res = document.getElementById('res_runnetwork');
-      sendData(uri, 'POST', req, res);
-    
-    }
-    function onCheckParseResult() {
-      const req = {
-        mode: 'check_parse_result',
-      }
-      const res = document.getElementById('res_checkparseresult');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetInputTensor_name() {
-      const req = {
-        mode: 'get_input_tensor_name',
-        input_tensor: document.getElementById('input_tensor_name').value
-      }
-      const res = document.getElementById('res_getinputtensor_index');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetOutputTensor_name() {
-      const req = {
-        mode: 'get_output_tensor_name',
-        output_tensor: document.getElementById('output_tensor_name').value
-      }
-      const res = document.getElementById('res_getoutputtensor_index');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetInputTensor_index() {
-      const req = {
-        mode: 'get_input_tensor_index',
-        input_tensor: document.getElementById('input_tensor_index').value
-      }
-      const res = document.getElementById('res_getinputtensor_name');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetOutputTensor_index() {
-      const req = {
-        mode: 'get_output_tensor_index',
-        output_tensor: document.getElementById('output_tensor_index').value
-      }
-      const res = document.getElementById('res_getoutputtensor_name');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetAllInputTensors() {
-      const req = {
-        mode: 'get_all_input_tensors',
-      }
-      const res = document.getElementById('res_getallinputtensors');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetAllOutputTensors() {
-      const req = {
-        mode: 'get_all_output_tensors',
-      }
-      const res = document.getElementById('res_getalloutputtensors');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetInputTensorCount() {
-      const req = {
-        mode: 'get_input_tensor_count',
-      }
-      const res = document.getElementById('res_getinputtensorcount');
-      sendData(uri, 'POST', req, res);
-    }
-    function onGetOutputTensorCount() {
-      const req = {
-        mode: 'get_output_tensor_count',
-      }
-      const res = document.getElementById('res_getoutputtensorcount');
-      sendData(uri, 'POST', req, res);
-    }
-    function onUnloadNetwork() {
-      const req = {
-        mode: 'unload_network'
-      }
-      const res = document.getElementById('res_unloadnetwork');
-      sendData(uri, 'POST', req, res);
+    function setResponse(text) {
+      document.getElementById('last-response').textContent = text;
     }
 
-    const sendData = (uri, method, req, res) => {
-      fetch(uri, {
-        method: method,
-        body: JSON.stringify(req)
-      }).then(response => {
-        if (response.ok) {
-          console.log(response.json());
-          res.textContent = 'Pass';
-        } else {
-          throw new Error('request failed');
-          res.textContent = 'Fail';
-        }
-      }).catch(error => {
-        console.error('Error', error);
-        res.textContent = 'Fail: ' + error;
+    function updateStatusBar(data) {
+      const state = data.state || '?';
+      const stateClass = state === 'running' ? 'status-running' : 'status-stopped';
+      document.getElementById('status-bar').innerHTML =
+        `<span class="status-label">state: </span><span class="${stateClass}">${state}</span>  ` +
+        `<span class="status-label">model: </span><span class="status-val">${data.model || '-'}</span>  ` +
+        `<span class="status-label">confidence: </span><span class="status-val">${data.confidence_threshold ?? '-'}</span>  ` +
+        `<span class="status-label">nms: </span><span class="status-val">${data.nms_iou_threshold ?? '-'}</span>  ` +
+        `<span class="status-label">skip_frames: </span><span class="status-val">${data.skip_frames ?? '-'}</span>`;
+    }
+
+    function api(mode, method, body) {
+      const url = base_uri + '?mode=' + mode;
+      return fetch(url, {
+        method: method || 'GET',
+        body: body ? JSON.stringify(body) : undefined
       });
     }
+
+    function doStart() {
+      api('start', 'POST', { mode: 'start' })
+        .then(r => r.json())
+        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
+        .catch(e => setResponse('Error: ' + e));
+    }
+
+    function doStop() {
+      api('stop', 'POST', { mode: 'stop' })
+        .then(r => r.json())
+        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
+        .catch(e => setResponse('Error: ' + e));
+    }
+
+    function doInfo() {
+      api('info', 'GET')
+        .then(r => r.json())
+        .then(d => { setResponse(JSON.stringify(d)); updateStatusBar(d); fetchLogs(); })
+        .catch(e => setResponse('Error: ' + e));
+    }
+
+    function fetchLogs() {
+      api('log', 'GET')
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(entries => {
+          const panel = document.getElementById('log-panel');
+          if (!Array.isArray(entries) || entries.length === 0) {
+            panel.value = '(로그 없음 - 앱이 아직 시작되지 않았거나 mode=log 엔드포인트 미응답)';
+          } else {
+            panel.value = entries.join('\n');
+            panel.scrollTop = panel.scrollHeight;
+          }
+        })
+        .catch(e => {
+          document.getElementById('log-panel').value = 'Error fetching logs: ' + e + '\n\n(앱이 실행 중인지 확인하세요)';
+        });
+    }
+
+    function clearLogs() {
+      api('clear', 'GET')
+        .then(r => r.json())
+        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
+        .catch(e => setResponse('Error: ' + e));
+    }
+
+    function toggleAutoRefresh() {
+      if (document.getElementById('auto-refresh').checked) {
+        autoRefreshTimer = setInterval(fetchLogs, 3000);
+      } else {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+    }
+
+    // 페이지 로드 시 자동으로 info + log 조회
+    window.onload = function() {
+      doInfo();
+      fetchLogs();
+    };
   </script>
-
-  <div id="app"></div>
-  <style>
-    #res_createnetwork {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_createinputtensor {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_createoutputtensor {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_loadnetwork {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_runnetwork {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_checkparseresult {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getinputtensor_index {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getoutputtensor_index {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getinputtensor_name {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getoutputtensor_name {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getallinputtensors {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getalloutputtensors {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getinputtensorcount {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_getoutputtensorcount {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
-  <style>
-    #res_unloadnetwork {
-      display: inline;
-      margin-left: 10px;
-    }
-  </style>
 </body>
-
 </html>

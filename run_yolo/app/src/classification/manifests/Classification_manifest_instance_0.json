@@ -5,6 +5,10 @@
     "SchedulerName": "HandDetectorScheduler",
     "ReceiverNames": [
       "AppDispatcher",
+      {
+        "SymbolName": "LogManager",
+        "RealName": "2009004"
+      },
       "SPMgrVideoRaw_0",
       "OpenPlatform",
       "AppNetworkManager",

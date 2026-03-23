@@ -50,9 +50,9 @@
       "RemoteComponentName": "SRMgrVideo_${APPCHANNEL}"
     },
     {
-      "LocalComponentName": "LogManager",
+      "LocalComponentName": "2009004",
       "ContainerName": "System",
-      "RemoteComponentName": "LogManager"
+      "RemoteComponentName": "2009004"
     },
     {
       "LocalComponentName": "AppNetworkManager",
