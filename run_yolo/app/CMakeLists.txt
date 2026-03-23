@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2.2)
 
-project(run_neural_network)
+project(hand_detector)
 
 set(TARGET_EXE ${PROJECT_NAME})
 

@@ -1,10 +1,10 @@
 {
   "SkeletonPortNumber": "auto",
-  "ContainerName": "run_neural_network",
+  "ContainerName": "hand_detector",
   "AcceptLocalOnly": false,
   "SchedulerNames": [
     "eScheduler1",
-    "eClassificationScheduler"
+    "HandDetectorScheduler"
   ],
   "RemoteContainerNames": [
     {
@@ -33,11 +33,31 @@
       "LocalComponentName": "Stub::Dispatcher::OpenSDK",
       "ContainerName": "System",
       "RemoteComponentName": "OpenSDKCGIDispatcher"
-  },
+    },
     {
       "LocalComponentName": "MetadataManager_${APPCHANNEL}",
       "ContainerName": "System",
       "RemoteComponentName": "MetadataManager_${APPCHANNEL}"
+    },
+    {
+      "LocalComponentName": "ConfigurableAlarmOut",
+      "ContainerName": "System",
+      "RemoteComponentName": "ConfigurableAlarmOut"
+    },
+    {
+      "LocalComponentName": "SRMgrVideo_${APPCHANNEL}",
+      "ContainerName": "System",
+      "RemoteComponentName": "SRMgrVideo_${APPCHANNEL}"
+    },
+    {
+      "LocalComponentName": "LogManager",
+      "ContainerName": "System",
+      "RemoteComponentName": "LogManager"
+    },
+    {
+      "LocalComponentName": "AppNetworkManager",
+      "ContainerName": "System",
+      "RemoteComponentName": "AppNetworkManager"
     }
   ]
 }

@@ -1,4 +1,4 @@
-set(TARGET_LIB classification)
+set(TARGET_LIB hand_detector)
 
 set(NPU_API_DIR ${WISENET_PRODUCT_RELEASE_PATH}/lib/npu_api/)
 
@@ -42,11 +42,15 @@ elseif(SOC STREQUAL "wn9")
 endif()
   link_libraries(npu_api)
 
-add_library(${TARGET_LIB} MODULE classification.cc)
+add_library(${TARGET_LIB} MODULE
+  classification.cc
+  yolo_postprocess.cc
+  mqtt_logger.cc
+)
 
 target_link_directories(${TARGET_LIB} PRIVATE ${NPU_API_DIR}/libs)
 target_link_libraries(${TARGET_LIB} PRIVATE situational_analytics_service stdlib protocol_utility_wrapper response_generator)
 
-install (TARGETS ${TARGET_LIB} DESTINATION ${CMAKE_HOME_DIRECTORY}/libs/${TARGET_LIB})
-install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manifests/ DESTINATION ${CMAKE_HOME_DIRECTORY}/libs/${TARGET_LIB} FILES_MATCHING PATTERN "*manifest.json")
-install (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manifests/ DESTINATION ${CMAKE_HOME_DIRECTORY}/res/models FILES_MATCHING PATTERN "*instance*.json" PATTERN "*attribute*.json")
+install(TARGETS ${TARGET_LIB} DESTINATION ${CMAKE_HOME_DIRECTORY}/libs/${TARGET_LIB})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manifests/ DESTINATION ${CMAKE_HOME_DIRECTORY}/libs/${TARGET_LIB} FILES_MATCHING PATTERN "*manifest.json")
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manifests/ DESTINATION ${CMAKE_HOME_DIRECTORY}/res/models FILES_MATCHING PATTERN "*instance*.json" PATTERN "*attribute*.json")

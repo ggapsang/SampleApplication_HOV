@@ -1,5 +1,5 @@
 {
-	"LibraryFileName" : "libclassification.so",
-	"Version" : "1.0.0",
-	"DynamicLoadable" : true
+  "LibraryFileName": "libhand_detector.so",
+  "Version": "1.0.0",
+  "DynamicLoadable": true
 }

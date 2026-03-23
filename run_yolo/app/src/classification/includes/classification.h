@@ -10,56 +10,63 @@
 #include "i_analytics_detector.h"
 #include "typedef_analytics_detector.h"
 #include "i_log_manager.h"
+
 constexpr ClassID kComponentId =
     static_cast<ClassID>(_ELayer_Analytics_Detector::_eObjectDetectorAI);
 
-constexpr unsigned long HashStr (const char* str, int h=0){ return !str[h] ? 55 : ( HashStr(str, h+1) *33) + (unsigned char)(str[h]); }
+constexpr unsigned long HashStr(const char* str, int h = 0) {
+  return !str[h] ? 55 : (HashStr(str, h + 1) * 33) + (unsigned char)(str[h]);
+}
 
-class Classification : public Component {
+class HandDetector : public Component {
   struct ManifestInfo {
    public:
     std::string app_name;
     std::string version;
     std::vector<std::string> permissions;
   };
+
   struct AppAttributeInfo {
    public:
-    std::string model_name;
-    std::string input_tensor_names;
-    std::string output_tensor_names;
-
-    std::string get_index_input_name;
-    std::string get_index_output_name;
-    std::string get_name_input_index;
-    std::string get_name_output_index;
+    float confidence_threshold = 0.5f;
+    float nms_iou_threshold = 0.45f;
+    int skip_frames = 0;
+    std::string mqtt_broker_host;
+    int mqtt_broker_port = 1883;
+    int alarm_on_threshold = 5;
+    int alarm_off_threshold = 30;
+    int alarm_cooldown_sec = 10;
 
     void reset() {
-      model_name.clear();
-      input_tensor_names.clear();
-      output_tensor_names.clear();
-      get_index_input_name.clear();
-      get_index_output_name.clear();
-      get_name_input_index.clear();
-      get_name_output_index.clear();
+      confidence_threshold = 0.5f;
+      nms_iou_threshold = 0.45f;
+      skip_frames = 0;
+      mqtt_broker_host.clear();
+      mqtt_broker_port = 1883;
+      alarm_on_threshold = 5;
+      alarm_off_threshold = 30;
+      alarm_cooldown_sec = 10;
     }
 
     AppAttributeInfo() { reset(); }
   };
 
-  struct RunNeuralNetworkInfoList : public SerializableJson {
+  struct HandDetectorInfoList : public SerializableJson {
    public:
     AppAttributeInfo app_attribute_info;
     std::string attribute_version_;
 
    public:
-    RunNeuralNetworkInfoList() = delete;
-    explicit RunNeuralNetworkInfoList(const std::string& version) {
+    HandDetectorInfoList() = delete;
+    explicit HandDetectorInfoList(const std::string& version) {
       sizeOfThis = sizeof(*this);
       app_attribute_info.reset();
       attribute_version_ = version;
     }
 
-    std::string Serialize(const std::string& groupName, std::map<std::string, SerializerAttribute>& _keyValueMap, std::string version) override {
+    std::string Serialize(const std::string& groupName,
+                          std::map<std::string, SerializerAttribute>& _keyValueMap,
+                          std::string version) override {
       JsonUtility::JsonDocument document;
       JsonUtility::JsonDocument::AllocatorType& alloc = document.GetAllocator();
       document.SetObject();
@@ -71,17 +78,16 @@ class Classification : public Component {
       JsonUtility::ValueType app_info;
       app_info.SetObject();
 
-      JsonUtility::set(app_info, "model_name", app_attribute_info.model_name, alloc);
-      JsonUtility::set(app_info, "input_tensor_names", app_attribute_info.input_tensor_names, alloc);
-      JsonUtility::set(app_info, "output_tensor_names", app_attribute_info.output_tensor_names, alloc);
-
-      JsonUtility::set(app_info, "get_index_input_name", app_attribute_info.get_index_input_name, alloc);
-      JsonUtility::set(app_info, "get_index_output_name", app_attribute_info.get_index_output_name, alloc);
-      JsonUtility::set(app_info, "get_name_input_index", app_attribute_info.get_name_input_index, alloc);
-      JsonUtility::set(app_info, "get_name_output_index", app_attribute_info.get_name_output_index, alloc);
+      JsonUtility::set(app_info, "confidence_threshold", app_attribute_info.confidence_threshold, alloc);
+      JsonUtility::set(app_info, "nms_iou_threshold", app_attribute_info.nms_iou_threshold, alloc);
+      JsonUtility::set(app_info, "skip_frames", app_attribute_info.skip_frames, alloc);
+      JsonUtility::set(app_info, "mqtt_broker_host", app_attribute_info.mqtt_broker_host, alloc);
+      JsonUtility::set(app_info, "mqtt_broker_port", app_attribute_info.mqtt_broker_port, alloc);
+      JsonUtility::set(app_info, "alarm_on_threshold", app_attribute_info.alarm_on_threshold, alloc);
+      JsonUtility::set(app_info, "alarm_off_threshold", app_attribute_info.alarm_off_threshold, alloc);
+      JsonUtility::set(app_info, "alarm_cooldown_sec", app_attribute_info.alarm_cooldown_sec, alloc);
 
       attributes_info.PushBack(app_info, alloc);
-
       document.AddMember(JsonUtility::ValueType("Attributes", alloc), attributes_info, alloc);
 
       rapidjson::StringBuffer strbuf;
@@ -91,14 +97,17 @@ class Classification : public Component {
       return strbuf.GetString();
     }
 
-    bool Deserialize(const std::string& inputString, const std::string& groupName, std::map<std::string, SerializerAttribute>& _keyValueMap) override {
+    bool Deserialize(const std::string& inputString,
+                     const std::string& groupName,
+                     std::map<std::string, SerializerAttribute>& _keyValueMap) override {
       try {
         JsonUtility::JsonDocument document;
         document.SetObject();
 
         rapidjson::ParseResult json_parse_result = document.Parse(inputString);
         if (!json_parse_result) {
-          Log::Print("Attribute file parsing failed at %s Error Code : %d\n", groupName.c_str(), json_parse_result.Code());
+          Log::Print("Attribute file parsing failed at %s Error Code : %d\n",
+                     groupName.c_str(), json_parse_result.Code());
           return false;
         }
 
@@ -112,42 +121,38 @@ class Classification : public Component {
           Log::Print("Attribute Field is not found at %s", groupName.c_str());
           return false;
         }
+
         if (attributes_info->value.IsArray()) {
           for (JsonUtility::ValueType& arrayItr : attributes_info->value.GetArray()) {
             AppAttributeInfo app_info;
-
-            JsonUtility::get(arrayItr, "model_name", app_info.model_name);
-            JsonUtility::get(arrayItr, "input_tensor_names", app_info.input_tensor_names);
-            JsonUtility::get(arrayItr, "output_tensor_names", app_info.output_tensor_names);
-
-            JsonUtility::get(arrayItr, "get_index_input_name", app_info.get_index_input_name);
-            JsonUtility::get(arrayItr, "get_name_input_index", app_info.get_name_input_index);
-            JsonUtility::get(arrayItr, "get_index_output_name", app_info.get_index_output_name);
-            JsonUtility::get(arrayItr, "get_name_output_index", app_info.get_name_output_index);
-
+            JsonUtility::get(arrayItr, "confidence_threshold", app_info.confidence_threshold);
+            JsonUtility::get(arrayItr, "nms_iou_threshold", app_info.nms_iou_threshold);
+            JsonUtility::get(arrayItr, "skip_frames", app_info.skip_frames);
+            JsonUtility::get(arrayItr, "mqtt_broker_host", app_info.mqtt_broker_host);
+            JsonUtility::get(arrayItr, "mqtt_broker_port", app_info.mqtt_broker_port);
+            JsonUtility::get(arrayItr, "alarm_on_threshold", app_info.alarm_on_threshold);
+            JsonUtility::get(arrayItr, "alarm_off_threshold", app_info.alarm_off_threshold);
+            JsonUtility::get(arrayItr, "alarm_cooldown_sec", app_info.alarm_cooldown_sec);
             app_attribute_info = app_info;
           }
         }
       } catch (const Exception& e) {
-        Log::Print("\033[1;31m Exception ID (%" PRIu64 ") -> %s\n, %s:%d \033[0m\n", e.GetClassId(), e.what(), __PRETTY_FUNCTION__, __LINE__);
+        Log::Print("\033[1;31m Exception ID (%" PRIu64 ") -> %s\n, %s:%d \033[0m\n",
+                   e.GetClassId(), e.what(), __PRETTY_FUNCTION__, __LINE__);
         throw e;
       } catch (const std::exception& e) {
-        Log::Print("\033[1;31m Exception -> %s\n, %s:%d \033[0m\n", e.what(), __PRETTY_FUNCTION__, __LINE__);
+        Log::Print("\033[1;31m Exception -> %s\n, %s:%d \033[0m\n",
+                   e.what(), __PRETTY_FUNCTION__, __LINE__);
         throw e;
       }
-
       return true;
     }
 
-    /**
-     * @fn    WriteFile()
-     * @brief override WriteFile function.
-     *        because it doesn't have std::ofstream::trunc option which would
-     * erase the existing file contents.
-     */
-    bool WriteFile(const std::string& filename, const std::string& groupName, std::string& outputString) override {
+    bool WriteFile(const std::string& filename,
+                   const std::string& groupName,
+                   std::string& outputString) override {
       std::ofstream output_file(filename.c_str(), std::ofstream::trunc);
-      if (output_file.is_open() == false) {
+      if (!output_file.is_open()) {
         output_file.close();
         return false;
       }
@@ -156,14 +161,15 @@ class Classification : public Component {
       return true;
     }
   };
+
  public:
   using base = Component;
   using NeuralNeworkMap = std::unordered_map<std::string, std::unique_ptr<NeuralNetwork>>;
 
  public:
-  Classification();
-  Classification(ClassID id, const char* name);
-  virtual ~Classification();
+  HandDetector();
+  HandDetector(ClassID id, const char* name);
+  virtual ~HandDetector();
   bool ProcessAEvent(Event* event) override;
 
  protected:
@@ -171,40 +177,17 @@ class Classification : public Component {
   void Start() override;
   bool Finalize() override;
 
-  bool UnloadNetwork(const std::string& model_path);
-  bool PreProcess(const std::string& model_path, std::shared_ptr<Tensor> rgb);
-  void HandleRequest(Event* event);
-  bool Execute(const std::string& model_path);
-  bool PostProcess(const std::string& model_path, const std::shared_ptr<Tensor>& img);
-
-  virtual void RegisterOpenAPIURI();
-  bool ParseNpuEvent(const std::string& event_body);
-  bool InsertNpuLoadInfo(std::string& target, std::string recv_value);
   bool ParseManifest(const std::string& manifest_path, ManifestInfo& info);
-  void SetMetaFrameSchema();
-  void SetMetaFrameCapabilitySchema();
-  void SendMetadata();  
-  std::string GetXml(const int* max_id, const float* max_val, const int64_t timestamp);
-  Vector<String> Split(String line, char seperator);
+  virtual void RegisterOpenAPIURI();
+  bool HandleStreamRequest(OpenAppSerializable* param, const std::string& body);
 
-  bool CreateNetwork(NeuralNetwork* network, JsonUtility::JsonDocument& document);
-  bool CreateTensor(NeuralNetwork* network, JsonUtility::JsonDocument& document, const std::string& request);
-  bool LoadNetwork(NeuralNetwork* network);
-  bool RunNetwork(NeuralNetwork* network);
-  bool CheckParseResult(NeuralNetwork* network);
-  bool UnloadNetwork(NeuralNetwork* network);
-  bool GetTensorName(NeuralNetwork* network, JsonUtility::JsonDocument& document, const std::string& request);
-  bool GetTensorIndex(NeuralNetwork* network, JsonUtility::JsonDocument& document, const std::string& request);
-  bool GetAllTensor(NeuralNetwork* network, const std::string& mod);
-  bool GetTensorCount(NeuralNetwork* network, const std::string& mod);
-  std::string TimePointToString(uint64_t timestamp) const;
+  NeuralNetwork* GetOrCreateNetwork(const std::string& name);
+  NeuralNetwork* GetNetwork(const std::string& name);
+  NeuralNeworkMap& GetAllNetworks();
+  void RemoveNetwork(const std::string& name);
 
  private:
-  void Inference(std::shared_ptr<RawImage> img);
-  bool ParseResult(float* data, int out_width);
-  void ProcessRawVideo(Event* event);
-  void DebugLog(const char* format, ...)
-  {
+  void DebugLog(const char* format, ...) {
     char buffer[1024] = {};
     va_list args;
     va_start(args, format);
@@ -213,36 +196,26 @@ class Classification : public Component {
 
     auto* arg = new ("") Platform_Std_Refine::SerializableString(buffer);
     SendTargetEvents(
-                    ILogManager::remote_debug_message_group, 
-                    static_cast<int32_t>(ILogManager::EEvent::eRemoteDebugMessage), 
-                    0,
-                    arg
-                    );
+        ILogManager::remote_debug_message_group,
+        static_cast<int32_t>(ILogManager::EEvent::eRemoteDebugMessage),
+        0,
+        arg);
     std::cout << buffer << std::endl;
   }
+
  private:
-  struct NnLodeInfo {
+  struct NnLoadInfo {
     std::string model_name_;
     std::string input_tensor_names_;
     std::string output_tensor_names_;
-  } npu_load_info;
-
-  std::string relative_model_path;
-
-  int max_id[5];
-  float max_val[5];
-  uint64_t raw_pts = 0;
-  bool parse_result = true;
-
-  bool run_flag = 0;
-  std::shared_ptr<RunNeuralNetworkInfoList> run_neural_network_info_list;
-  ManifestInfo manifest_;
-
-protected:
-  NeuralNetwork* GetOrCreateNetwork(const std::string& name);
-  NeuralNetwork* GetNetwork(const std::string& name);
-  NeuralNeworkMap& GetAllNetworks();
-  void RemoveNetwork(const std::string& name);
+  } npu_load_info_;
 
   NeuralNeworkMap nn_map_;
+  bool run_flag_ = false;
+  uint64_t raw_pts_ = 0;
+  std::shared_ptr<HandDetectorInfoList> info_list_;
+  ManifestInfo manifest_;
+
+ protected:
+  NeuralNeworkMap nn_map_protected_;  // Phase 2에서 사용
 };
