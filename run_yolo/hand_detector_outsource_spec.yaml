@@ -216,7 +216,7 @@ mqtt:
       payload_example: |
         {
           "state": "running",
-          "model": "hand_yolov11n.nb",
+          "model": "network_binary.nb",
           "uptime_sec": 3600,
           "total_detections": 15234
         }

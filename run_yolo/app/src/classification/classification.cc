@@ -62,20 +62,17 @@ void HandDetector::WriteEventLog(const std::string& message)
 
 bool HandDetector::Initialize()
 {
+  RegisterOpenAPIURI();
   info_list_ = std::make_shared<HandDetectorInfoList>(GetStringComponentVersion());
   PrepareAttributes(info_list_.get(), GetObjectName());
 
   std::string manifest_path = "../../config/app_manifest.json";
   ParseManifest(manifest_path, manifest_);
 
-  if (GetChannel() == 0) {
-    RegisterOpenAPIURI();
-  }
-
-  AppendLog("Initialize called (channel=" + std::to_string(GetChannel()) + ")");
-  DebugLog("HandDetector Initialize (channel=%d)", GetChannel());
+  AppendLog("Initialize called");
+  DebugLog("HandDetector Initialize");
   WriteEventLog("HandDetector Initialize OK");
-  return true;
+  return Component::Initialize();
 }
 
 bool HandDetector::ParseManifest(const std::string& manifest_path, ManifestInfo& info)
@@ -109,7 +106,6 @@ void HandDetector::RegisterOpenAPIURI()
 {
   Vector<String> methods;
   methods.push_back("POST");
-  methods.push_back("GET");
 
   auto uriRequest = new ("OpenAPI") IAppDispatcher::OpenAPIRegistrar(
       String("/configuration"), GetInstanceName(), methods);
@@ -208,7 +204,14 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     }
   }
 
-  if (mode == "log") {
+  if (mode == "test") {
+    WriteEventLog("Test Log!");
+    AppendLog("mode=test: WriteEventLog called");
+    param->SetStatusCode(200);
+    param->SetResponseBody("{\"result\":\"ok\"}");
+    return true;
+  }
+  else if (mode == "log") {
     std::string resp = "[";
     for (size_t i = 0; i < debug_log_.size(); ++i) {
       // JSON string escape
@@ -258,7 +261,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     std::string resp =
         std::string("{") +
         "\"state\":\"" + (run_flag_ ? "running" : "stopped") + "\"," +
-        "\"model\":\"hand_yolov11n.nb\"," +
+        "\"model\":\"network_binary.nb\"," +
         "\"confidence_threshold\":" + std::to_string(attr.confidence_threshold) + "," +
         "\"nms_iou_threshold\":" + std::to_string(attr.nms_iou_threshold) + "," +
         "\"skip_frames\":" + std::to_string(attr.skip_frames) + "," +

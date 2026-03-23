@@ -9,26 +9,21 @@
         "SymbolName": "LogManager",
         "RealName": "2009004"
       },
-      "SPMgrVideoRaw_0",
-      "OpenPlatform",
-      "AppNetworkManager",
-      "ConfigurableAlarmOut"
+      {
+        "SymbolName": "MetadataManager",
+        "RealName": "MetadataManager_${APPCHANNEL}"
+      },
+      "ConfigurableAlarmOut",
+      "AppNetworkManager"
     ],
     "SourceNames": [
       {
         "Source": "SPMgrVideoRaw_${APPCHANNEL}",
         "GroupName": "GroupSPMgrVideoRaw2"
-      },
-      {
-        "Source": "OpenPlatform",
-        "GroupName": "AppMessage"
-      },
-      {
-        "Source": "OpenPlatform",
-        "GroupName": "SettingChange"
       }
     ],
-    "Channel": "${APPCHANNEL}",
+    "Channel": 0,
+    "ModelPath": "../res/models/",
     "SettingPath": "../storage/settings/"
   }
 }

@@ -3,7 +3,7 @@
   "ContainerName": "hand_detector",
   "AcceptLocalOnly": false,
   "SchedulerNames": [
-    "eScheduler1",
+    "EComponents::eScheduler1",
     "HandDetectorScheduler"
   ],
   "RemoteContainerNames": [

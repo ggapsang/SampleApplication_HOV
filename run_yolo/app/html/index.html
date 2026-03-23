@@ -10,8 +10,6 @@
     .section { margin-bottom: 16px; }
     .section-title { color: #569cd6; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
     .status-bar { background: #252526; border: 1px solid #3c3c3c; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; }
-    .status-label { color: #808080; }
-    .status-val { color: #ce9178; margin-right: 20px; }
     .status-running { color: #4ec9b0; }
     .status-stopped { color: #f44747; }
     button {
@@ -48,6 +46,7 @@
     <button onclick="doStart()">▶ Start</button>
     <button onclick="doStop()" class="danger">■ Stop</button>
     <button onclick="doInfo()" class="secondary">ℹ Info</button>
+    <button onclick="doTest()" class="secondary">✉ Test Log</button>
   </div>
 
   <div class="section">
@@ -81,44 +80,50 @@
       const state = data.state || '?';
       const stateClass = state === 'running' ? 'status-running' : 'status-stopped';
       document.getElementById('status-bar').innerHTML =
-        `<span class="status-label">state: </span><span class="${stateClass}">${state}</span>  ` +
-        `<span class="status-label">model: </span><span class="status-val">${data.model || '-'}</span>  ` +
-        `<span class="status-label">confidence: </span><span class="status-val">${data.confidence_threshold ?? '-'}</span>  ` +
-        `<span class="status-label">nms: </span><span class="status-val">${data.nms_iou_threshold ?? '-'}</span>  ` +
-        `<span class="status-label">skip_frames: </span><span class="status-val">${data.skip_frames ?? '-'}</span>`;
+        `<span style="color:#808080">state: </span><span class="${stateClass}">${state}</span>  ` +
+        `<span style="color:#808080">model: </span><span style="color:#ce9178">${data.model || '-'}</span>  ` +
+        `<span style="color:#808080">confidence: </span><span style="color:#ce9178">${data.confidence_threshold ?? '-'}</span>  ` +
+        `<span style="color:#808080">nms: </span><span style="color:#ce9178">${data.nms_iou_threshold ?? '-'}</span>`;
     }
 
-    function api(mode, method, body) {
-      const url = base_uri + '?mode=' + mode;
-      return fetch(url, {
-        method: method || 'GET',
-        body: body ? JSON.stringify(body) : undefined
+    function api(mode) {
+      return fetch(base_uri, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: mode })
       });
     }
 
     function doStart() {
-      api('start', 'POST', { mode: 'start' })
+      api('start')
         .then(r => r.json())
         .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
         .catch(e => setResponse('Error: ' + e));
     }
 
     function doStop() {
-      api('stop', 'POST', { mode: 'stop' })
+      api('stop')
         .then(r => r.json())
         .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
         .catch(e => setResponse('Error: ' + e));
     }
 
     function doInfo() {
-      api('info', 'GET')
+      api('info')
         .then(r => r.json())
         .then(d => { setResponse(JSON.stringify(d)); updateStatusBar(d); fetchLogs(); })
         .catch(e => setResponse('Error: ' + e));
     }
 
+    function doTest() {
+      api('test')
+        .then(r => r.json())
+        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
+        .catch(e => setResponse('Error: ' + e));
+    }
+
     function fetchLogs() {
-      api('log', 'GET')
+      api('log')
         .then(r => {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
@@ -126,19 +131,19 @@
         .then(entries => {
           const panel = document.getElementById('log-panel');
           if (!Array.isArray(entries) || entries.length === 0) {
-            panel.value = '(로그 없음 - 앱이 아직 시작되지 않았거나 mode=log 엔드포인트 미응답)';
+            panel.value = '(로그 없음)';
           } else {
             panel.value = entries.join('\n');
             panel.scrollTop = panel.scrollHeight;
           }
         })
         .catch(e => {
-          document.getElementById('log-panel').value = 'Error fetching logs: ' + e + '\n\n(앱이 실행 중인지 확인하세요)';
+          document.getElementById('log-panel').value = 'Error: ' + e;
         });
     }
 
     function clearLogs() {
-      api('clear', 'GET')
+      api('clear')
         .then(r => r.json())
         .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
         .catch(e => setResponse('Error: ' + e));
@@ -153,7 +158,6 @@
       }
     }
 
-    // 페이지 로드 시 자동으로 info + log 조회
     window.onload = function() {
       doInfo();
       fetchLogs();
