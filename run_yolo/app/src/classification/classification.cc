@@ -189,12 +189,16 @@ bool HandDetector::LoadNeuralNetwork()
   }
   AppendLog("LoadNeuralNetwork: CreateInputTensor OK");
 
-  const auto& output_tensor = network->CreateOutputTensor("output0");
-  if (!output_tensor) {
-    AppendLog("LoadNeuralNetwork: FAIL CreateOutputTensor(output0)");
-    return false;
+  // Raw 모델: 6개 출력 텐서 (bbox P3/P4/P5, cls P3/P4/P5)
+  const char* output_names[] = {"cv2.0", "cv2.1", "cv2.2", "cv3.0", "cv3.1", "cv3.2"};
+  for (int i = 0; i < 6; i++) {
+    const auto& ot = network->CreateOutputTensor(output_names[i]);
+    if (!ot) {
+      AppendLog("LoadNeuralNetwork: FAIL CreateOutputTensor(" + std::string(output_names[i]) + ")");
+      return false;
+    }
   }
-  AppendLog("LoadNeuralNetwork: CreateOutputTensor OK");
+  AppendLog("LoadNeuralNetwork: CreateOutputTensor x6 OK");
 
   auto mean  = std::vector<float>{0.0f, 0.0f, 0.0f};
   auto scale = std::vector<float>{1.0f, 1.0f, 1.0f};
@@ -217,20 +221,24 @@ bool HandDetector::LoadNeuralNetwork()
       AppendLog("LoadNeuralNetwork: WARN GetInputTensor(0) null after load");
     }
 
-    const std::shared_ptr<Tensor>& out(network->GetOutputTensor(0));
-    if (out) {
-      AppendLog("LoadNeuralNetwork: output_tensor shape=[" +
-                std::to_string(out->Length(0)) + "," +
-                std::to_string(out->Length(1)) + "," +
-                std::to_string(out->Length(2)) + "]");
-    } else {
-      AppendLog("LoadNeuralNetwork: WARN GetOutputTensor(0) null after load");
+    for (int i = 0; i < 6; i++) {
+      const std::shared_ptr<Tensor>& out(network->GetOutputTensor(i));
+      if (out) {
+        int ch = out->Length(0);
+        std::string role = (ch == 64) ? "bbox" : (ch == 1) ? "cls" : "unknown";
+        AppendLog("LoadNeuralNetwork: output[" + std::to_string(i) + "] shape=[" +
+                  std::to_string(out->Length(0)) + "," +
+                  std::to_string(out->Length(1)) + "," +
+                  std::to_string(out->Length(2)) + "] (" + role + ")");
+      } else {
+        AppendLog("LoadNeuralNetwork: WARN GetOutputTensor(" + std::to_string(i) + ") null after load");
+      }
     }
   }
 
   npu_load_info_.model_name_          = model_name;
   npu_load_info_.input_tensor_names_  = "images";
-  npu_load_info_.output_tensor_names_ = "output0";
+  npu_load_info_.output_tensor_names_ = "cv2.0,cv2.1,cv2.2,cv3.0,cv3.1,cv3.2";
 
   AppendLog("LoadNeuralNetwork: OK (model=" + model_name + ")");
   WriteEventLog("HandDetector: NPU model loaded OK");
@@ -336,6 +344,16 @@ bool HandDetector::ProcessAEvent(Event* event)
       static int unk_cnt = 0;
       if (++unk_cnt <= 10)
         AppendLog("ProcessAEvent: unknown event type=" + std::to_string(event->GetType()));
+
+      // event 2006001이 eReadyForUse일 수 있음 → Capability 재전송
+      static bool cap_resent = false;
+      if (!cap_resent && event->GetType() == 2006001) {
+        cap_resent = true;
+        SetMetaFrameCapabilitySchema();
+        SetMetaFrameSchema();
+        AppendLog("MetaFrame schemas re-sent on event 2006001");
+      }
+
       base::ProcessAEvent(event);
       break;
     }
@@ -816,91 +834,59 @@ bool HandDetector::PostProcess()
     return false;
   }
 
-  const std::shared_ptr<Tensor>& output_tensor(network->GetOutputTensor(0));
-  if (!output_tensor) {
-    AppendLog("PostProcess: FAIL GetOutputTensor(0) returned null");
-    return false;
+  // Raw 모델: 6개 출력 텐서 획득
+  const float* tensor_ptrs[6] = {};
+  for (int i = 0; i < 6; i++) {
+    const std::shared_ptr<Tensor>& t(network->GetOutputTensor(i));
+    if (!t) {
+      AppendLog("PostProcess: FAIL GetOutputTensor(" + std::to_string(i) + ") null");
+      return false;
+    }
+    tensor_ptrs[i] = static_cast<const float*>(t->VirtAddr());
+    if (!tensor_ptrs[i]) {
+      AppendLog("PostProcess: FAIL VirtAddr() null for output " + std::to_string(i));
+      return false;
+    }
   }
 
-  float* raw = static_cast<float*>(output_tensor->VirtAddr());
-  if (!raw) {
-    AppendLog("PostProcess: FAIL VirtAddr() returned null");
-    return false;
-  }
-
-  const int N = 8400;
-  const float bbox_scale = 2.4987835884094f;
-  const float bbox_zp    = -128.0f;
-  // conf_scale / conf_zp: dequantize 제거로 현재 미사용
-  // const float conf_scale = 0.029688827693462f;
-  // const float conf_zp    = 84.0f;
-
-  // 첫 번째 실행 시 텐서 크기 및 raw 샘플 값 출력
+  // Shape 기반 bbox/cls 분류 및 로깅 (첫 3프레임)
   static int pp_logged = 0;
   if (++pp_logged <= 3) {
-    AppendLog("PostProcess: tensor shape=[" +
-              std::to_string(output_tensor->Length(0)) + "," +
-              std::to_string(output_tensor->Length(1)) + "," +
-              std::to_string(output_tensor->Length(2)) + "] expected=[5,8400]");
-    // bbox raw 샘플 (row0 앞 3개)
-    AppendLog("PostProcess: raw_bbox[0..2]=" +
-              std::to_string(raw[0]) + "," +
-              std::to_string(raw[1]) + "," +
-              std::to_string(raw[2]));
-    // conf raw 샘플 (AoS: anchor 0~4의 conf 채널)
-    AppendLog("PostProcess: raw_conf[0..4]=" +
-              std::to_string(raw[0*5+4]) + "," +
-              std::to_string(raw[1*5+4]) + "," +
-              std::to_string(raw[2*5+4]) + "," +
-              std::to_string(raw[3*5+4]) + "," +
-              std::to_string(raw[4*5+4]));
-  }
-
-  std::vector<float> bbox_data(4 * N);
-  std::vector<float> conf_data(N);
-
-  // 텐서 레이아웃: [8400, 5, 1] AoS — raw[i*5+0]=cx, [i*5+1]=cy, [i*5+2]=w, [i*5+3]=h, [i*5+4]=conf
-  for (int i = 0; i < N; i++) {
-    bbox_data[0 * N + i] = (raw[i * 5 + 0] - bbox_zp) * bbox_scale;  // cx
-    bbox_data[1 * N + i] = (raw[i * 5 + 1] - bbox_zp) * bbox_scale;  // cy
-    bbox_data[2 * N + i] = (raw[i * 5 + 2] - bbox_zp) * bbox_scale;  // w
-    bbox_data[3 * N + i] = (raw[i * 5 + 3] - bbox_zp) * bbox_scale;  // h
-    conf_data[i]         = 1.0f / (1.0f + std::exp(-raw[i * 5 + 4])); // conf: sigmoid(logit)
-  }
-
-  // 주기적으로 conf 범위 및 dequantize 샘플 로그
-  static int pp_cnt = 0;
-  if (++pp_cnt % 30 == 1) {
-    float conf_min = conf_data[0], conf_max = conf_data[0];
-    for (int i = 1; i < N; i++) {
-      if (conf_data[i] < conf_min) conf_min = conf_data[i];
-      if (conf_data[i] > conf_max) conf_max = conf_data[i];
+    for (int i = 0; i < 6; i++) {
+      const auto& t = network->GetOutputTensor(i);
+      int ch = t->Length(0);
+      AppendLog("PostProcess: output[" + std::to_string(i) + "] ch=" + std::to_string(ch) +
+                " h=" + std::to_string(t->Length(1)) + " w=" + std::to_string(t->Length(2)));
     }
-    AppendLog("PostProcess #" + std::to_string(pp_cnt) +
-              ": conf range=[" + std::to_string(conf_min) +
-              "," + std::to_string(conf_max) + "]" +
-              " threshold=" + std::to_string(info_list_->app_attribute_info.confidence_threshold));
-    // dequantize 후 bbox 샘플 (첫 anchor cx,cy,w,h)
-    AppendLog("PostProcess: dequant_bbox[0]=" +
-              std::to_string(bbox_data[0]) + "," +
-              std::to_string(bbox_data[N]) + "," +
-              std::to_string(bbox_data[2*N]) + "," +
-              std::to_string(bbox_data[3*N]));
   }
+
+  // bbox: index 0,1,2 (64ch), cls: index 3,4,5 (1ch)
+  const float* bbox_p3 = tensor_ptrs[0];
+  const float* bbox_p4 = tensor_ptrs[1];
+  const float* bbox_p5 = tensor_ptrs[2];
+  const float* cls_p3  = tensor_ptrs[3];
+  const float* cls_p4  = tensor_ptrs[4];
+  const float* cls_p5  = tensor_ptrs[5];
 
   auto& attr = info_list_->app_attribute_info;
-  auto detections = YoloPostProcess(
-      bbox_data.data(),
-      conf_data.data(),
-      N,
+  auto detections = YoloRawPostProcess(
+      bbox_p3, bbox_p4, bbox_p5,
+      cls_p3, cls_p4, cls_p5,
       attr.confidence_threshold,
       attr.nms_iou_threshold,
       letterbox_scale_x_,
-      letterbox_scale_y_,
       letterbox_pad_x_,
       letterbox_pad_y_,
       static_cast<int>(frame_width_),
       static_cast<int>(frame_height_));
+
+  // 주기적 디버그 로그
+  static int pp_cnt = 0;
+  if (++pp_cnt % 30 == 1) {
+    AppendLog("PostProcess #" + std::to_string(pp_cnt) +
+              ": det=" + std::to_string(detections.size()) +
+              " threshold=" + std::to_string(attr.confidence_threshold));
+  }
 
   last_detection_count_ = static_cast<int>(detections.size());
   {
@@ -946,28 +932,28 @@ void HandDetector::SetMetaFrameSchema()
 
 void HandDetector::SetMetaFrameCapabilitySchema()
 {
-  std::string capabilities =
-      "{"
-      "\"xpath\": \"//tt:VideoAnalytics/tt:Frame/tt:Object/@ObjectId\","
-      "\"type\": \"xs:integer\","
-      "\"minimum\": 0,"
-      "\"maximum\": 999"
-      "},"
-      "{"
-      "\"xpath\": \"//tt:VideoAnalytics/tt:Frame/tt:Object/tt:Appearance/tt:Class/tt:Type/@Likelihood\","
-      "\"type\": \"xs:float\","
-      "\"minimum\": 0.0,"
-      "\"maximum\": 1.0"
-      "}";
-
+  // 테스트: ONVIF 표준 타입만 사용하여 카메라가 등록하는지 확인
   std::string str_out =
       "{\"AppID\": \"" + manifest_.app_name + "\","
-      "\"Capabilities\": [" + capabilities + "]}";
+      "\"Capabilities\": ["
+      "{\"xpath\": \"//tt:VideoAnalytics/tt:Frame/tt:Object/tt:Appearance/tt:Class/tt:Type\","
+      "\"type\": \"xs:string\","
+      "\"enum\": [\"Human\",\"Unknown\"]},"
+      "{\"xpath\": \"//tt:VideoAnalytics/tt:Frame/tt:Object/tt:Appearance/tt:Class/tt:Type/@Likelihood\","
+      "\"type\": \"xs:float\","
+      "\"minimum\": 0.0,"
+      "\"maximum\": 1.0},"
+      "{\"xpath\": \"//tt:VideoAnalytics/tt:Frame/tt:Object/@ObjectId\","
+      "\"type\": \"xs:integer\","
+      "\"minimum\": 0,"
+      "\"maximum\": 999}"
+      "]}";
 
   SendNoReplyEvent("Stub::Dispatcher::OpenSDK",
       static_cast<int32_t>(I_OpenSDKCGIDispatcher::EEventType::eMetaFrameCapability), 0,
       new ("Schema") Platform_Std_Refine::SerializableString(str_out.c_str()));
   AppendLog("SetMetaFrameCapabilitySchema: registered");
+  AppendLog("CapabilityJSON: " + str_out.substr(0, 300));
 }
 
 void HandDetector::SendFrameMetadata(const std::vector<Detection>& detections)
@@ -995,7 +981,7 @@ void HandDetector::SendFrameMetadata(const std::vector<Detection>& detections)
     obj.parent_id  = 0;
     obj.timestamp  = timestamp;
     obj.likelihood = det.confidence;
-    obj.category   = static_cast<metadata::common::ObjectCategory>(0);
+    obj.category   = static_cast<metadata::common::ObjectCategory>(0);  // kUnknown
     obj.attr_num   = static_cast<int>(detections.size());
     obj.rect.sx    = static_cast<int>(det.x1);
     obj.rect.ex    = static_cast<int>(det.x2);
