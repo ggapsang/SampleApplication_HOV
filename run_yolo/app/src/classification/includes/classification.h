@@ -11,6 +11,7 @@
 #include "typedef_analytics_detector.h"
 #include "i_log_manager.h"
 #include "yolo_postprocess.h"
+#include "mqtt_logger.h"
 
 constexpr ClassID kComponentId =
     static_cast<ClassID>(_ELayer_Analytics_Detector::_eObjectDetectorAI);
@@ -32,7 +33,7 @@ class HandDetector : public Component {
     float confidence_threshold = 0.75f;
     float nms_iou_threshold = 0.45f;
     int skip_frames = 0;
-    std::string mqtt_broker_host;
+    std::string mqtt_broker_host = "192.168.9.199";
     int mqtt_broker_port = 1883;
     int alarm_on_threshold = 5;
     int alarm_off_threshold = 30;
@@ -42,7 +43,7 @@ class HandDetector : public Component {
       confidence_threshold = 0.75f;
       nms_iou_threshold = 0.45f;
       skip_frames = 0;
-      mqtt_broker_host.clear();
+      mqtt_broker_host = "192.168.9.199";
       mqtt_broker_port = 1883;
       alarm_on_threshold = 5;
       alarm_off_threshold = 30;
@@ -245,5 +246,6 @@ class HandDetector : public Component {
   std::shared_ptr<HandDetectorInfoList> info_list_;
   ManifestInfo manifest_;
   std::vector<std::string> debug_log_;
+  MqttLogger mqtt_;
 
 };

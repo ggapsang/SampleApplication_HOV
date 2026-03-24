@@ -112,6 +112,17 @@ bool HandDetector::Initialize()
     AppendLog("Initialize: SKIP schema registration (channel=" + std::to_string(GetChannel()) + " != 0)");
   }
 
+  // MQTT 연결
+  auto& attr = info_list_->app_attribute_info;
+  if (!attr.mqtt_broker_host.empty()) {
+    bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port);
+    AppendLog("MQTT: " + std::string(ok ? "connected to " : "FAILED to connect ") +
+              attr.mqtt_broker_host + ":" + std::to_string(attr.mqtt_broker_port));
+    if (ok) mqtt_.PublishStatus("initialized", "network_binary.nb");
+  } else {
+    AppendLog("MQTT: broker host not configured (skipped)");
+  }
+
   AppendLog("Initialize called");
   DebugLog("HandDetector Initialize");
   WriteEventLog("HandDetector Initialize OK");
@@ -395,6 +406,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     AppendLog("mode=start: inference started");
     DebugLog("HandDetector: inference started");
     WriteEventLog("HandDetector: inference started");
+    mqtt_.PublishStatus("running", "network_binary.nb");
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"running\"}");
     return true;
@@ -404,6 +416,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     AppendLog("mode=stop: inference stopped");
     DebugLog("HandDetector: inference stopped");
     WriteEventLog("HandDetector: inference stopped");
+    mqtt_.PublishStatus("stopped", "network_binary.nb");
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"stopped\"}");
     return true;
@@ -667,7 +680,11 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
               "ms inf=" + std::to_string((int)inf_ms) +
               "ms post=" + std::to_string((int)post_ms) +
               "ms det=" + std::to_string(last_detection_count_));
+    mqtt_.PublishDebug(pre_ms, inf_ms, post_ms, last_detection_count_);
   }
+  // 매 프레임 감지 결과 MQTT 발행
+  mqtt_.PublishDetection(inf_cnt, last_detection_count_,
+      last_detection_count_ > 0 ? 1.0f : 0.0f);
 }
 
 bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
