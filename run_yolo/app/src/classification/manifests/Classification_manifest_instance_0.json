@@ -13,6 +13,14 @@
         "SymbolName": "MetadataManager",
         "RealName": "MetadataManager_${APPCHANNEL}"
       },
+      {
+        "SymbolName": "SRMgrVideo",
+        "RealName": "SRMgrVideo_${APPCHANNEL}"
+      },
+      {
+        "SymbolName": "Stub::Dispatcher::OpenSDK",
+        "RealName": "Stub::Dispatcher::OpenSDK"
+      },
       "ConfigurableAlarmOut",
       "AppNetworkManager"
     ],

@@ -10,6 +10,7 @@
 #include "i_analytics_detector.h"
 #include "typedef_analytics_detector.h"
 #include "i_log_manager.h"
+#include "yolo_postprocess.h"
 
 constexpr ClassID kComponentId =
     static_cast<ClassID>(_ELayer_Analytics_Detector::_eObjectDetectorAI);
@@ -182,6 +183,13 @@ class HandDetector : public Component {
   bool HandleStreamRequest(OpenAppSerializable* param, const std::string& body);
   void WriteEventLog(const std::string& message);
   void AppendLog(const std::string& msg);
+  void SetMetaFrameSchema();
+  void SetMetaFrameCapabilitySchema();
+  void SendFrameMetadata(const std::vector<Detection>& detections);
+  void SendOsd(int det_count, float max_conf);
+  void SendMetadataSchema();
+  void SendEventStatusSchema();
+  void NotifyEventMetadata(bool detected, int det_count, float max_conf);
 
   NeuralNetwork* GetOrCreateNetwork(const std::string& name);
   NeuralNetwork* GetNetwork(const std::string& name);
@@ -219,7 +227,11 @@ class HandDetector : public Component {
     std::string output_tensor_names_;
   } npu_load_info_;
 
+  std::string app_id_;
   NeuralNeworkMap nn_map_;
+  std::vector<Detection> last_detections_;
+  std::vector<uint8_t> last_jpeg_;
+  std::mutex detections_mutex_;
   bool run_flag_ = false;
   uint64_t raw_pts_ = 0;
   int frame_count_ = 0;

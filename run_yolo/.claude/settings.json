@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:)",
+      "Bash(find /c/opensdk/SampleApplication -type f \\\\\\(-name *.h -o -name *.hpp \\\\\\))",
+      "Bash(grep -r \"enum.*EEventType\\\\|::e\" /c/opensdk/SampleApplication/run_yolo/refs --include=*.md)",
+      "Bash(grep -r \"StreamMetadata\\\\|FrameMetadata\\\\|EventMetadata\" /c/opensdk/SampleApplication/send_metadata --include=*.cc)",
+      "Bash(grep -r \"eMetaFrameCapability\\\\|eMetadataSchema\\\\|eEventstatusSchema\" /c/opensdk/SampleApplication/run_yolo --include=*.cc)",
+      "Bash(find /c/opensdk/SampleApplication -type f \\\\\\(-name *.json -o -name *.yaml -o -name *.yml \\\\\\))"
+    ]
+  }
+}

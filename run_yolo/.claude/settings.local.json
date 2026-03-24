@@ -7,7 +7,14 @@
       "Bash(find /c/opensdk -type d -name include*)",
       "Bash(grep -r i_log_manager.h /c/opensdk --include=*.h --include=*.cc)",
       "Bash(grep -r LogDetailType /c/opensdk/SampleApplication --include=*.cc --include=*.h)",
-      "Bash(grep -r SendNoReplyEvent /c/opensdk/SampleApplication --include=*.cc)"
+      "Bash(grep -r SendNoReplyEvent /c/opensdk/SampleApplication --include=*.cc)",
+      "Bash(grep -r \"Title\\\\|eExternalMultiLineOsd\" /c/opensdk/SampleApplication --include=*.adoc)",
+      "Bash(grep -r \"IPStream\\\\|IMetadata\\\\|I_OpenSDK\\\\|I_EventStatus\\\\|IAnalytics\" /c/opensdk/SampleApplication --include=*.cc)",
+      "Bash(ls -la /c/opensdk/SampleApplication/run_yolo/refs/*.pdf)",
+      "Bash(grep -r \"video tag\\\\|UMP\\\\|stream.*http\\\\|http.*stream\" /c/opensdk/SampleApplication --include=*.html --include=*.js)",
+      "Bash(find /c/opensdk -name *camera* -o -name *video* -o -name *stream*)",
+      "Bash(grep -E \"\\\\.\\(h|cc\\)$\")",
+      "Bash(find /c/opensdk -name *stream*provider*)"
     ]
   }
 }

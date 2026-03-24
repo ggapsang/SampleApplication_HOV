@@ -42,6 +42,18 @@
   </div>
 
   <div class="section">
+    <div class="section-title">실시간 감지 뷰</div>
+    <div style="display:inline-block;background:#000;border:1px solid #3c3c3c;border-radius:4px;overflow:hidden">
+      <canvas id="still-canvas" width="640" height="360"></canvas>
+    </div>
+    <div style="margin-top:6px">
+      <button onclick="doCapture()">📷 스틸샷</button>
+      <button onclick="toggleLive()" id="live-btn">▶ 라이브</button>
+      <span id="cap-status" style="color:#808080;font-size:12px;margin-left:8px"></span>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title">컨트롤</div>
     <button onclick="doStart()">▶ Start</button>
     <button onclick="doStop()" class="danger">■ Stop</button>
@@ -95,67 +107,96 @@
     }
 
     function doStart() {
-      api('start')
-        .then(r => r.json())
-        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
-        .catch(e => setResponse('Error: ' + e));
+      api('start').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
-
     function doStop() {
-      api('stop')
-        .then(r => r.json())
-        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
-        .catch(e => setResponse('Error: ' + e));
+      api('stop').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
-
     function doInfo() {
-      api('info')
-        .then(r => r.json())
-        .then(d => { setResponse(JSON.stringify(d)); updateStatusBar(d); fetchLogs(); })
-        .catch(e => setResponse('Error: ' + e));
+      api('info').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));updateStatusBar(d);fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
-
     function doTest() {
-      api('test')
-        .then(r => r.json())
-        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
-        .catch(e => setResponse('Error: ' + e));
+      api('test').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
 
     function fetchLogs() {
-      api('log')
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
-        .then(entries => {
-          const panel = document.getElementById('log-panel');
-          if (!Array.isArray(entries) || entries.length === 0) {
-            panel.value = '(로그 없음)';
-          } else {
-            panel.value = entries.join('\n');
-            panel.scrollTop = panel.scrollHeight;
-          }
-        })
-        .catch(e => {
-          document.getElementById('log-panel').value = 'Error: ' + e;
-        });
+      api('log').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+        .then(entries=>{
+          const p=document.getElementById('log-panel');
+          if(!Array.isArray(entries)||!entries.length){p.value='(로그 없음)'}
+          else{p.value=entries.join('\n');p.scrollTop=p.scrollHeight}
+        }).catch(e=>{document.getElementById('log-panel').value='Error: '+e});
     }
-
     function clearLogs() {
-      api('clear')
-        .then(r => r.json())
-        .then(d => { setResponse(JSON.stringify(d)); fetchLogs(); })
-        .catch(e => setResponse('Error: ' + e));
+      api('clear').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
+    }
+    function toggleAutoRefresh() {
+      if(document.getElementById('auto-refresh').checked){autoRefreshTimer=setInterval(fetchLogs,3000)}
+      else{clearInterval(autoRefreshTimer);autoRefreshTimer=null}
     }
 
-    function toggleAutoRefresh() {
-      if (document.getElementById('auto-refresh').checked) {
-        autoRefreshTimer = setInterval(fetchLogs, 3000);
+    let liveTimer = null;
+    function toggleLive() {
+      if (liveTimer) {
+        clearInterval(liveTimer); liveTimer = null;
+        document.getElementById('live-btn').textContent = '▶ 라이브';
       } else {
-        clearInterval(autoRefreshTimer);
-        autoRefreshTimer = null;
+        liveTimer = setInterval(doCapture, 200);
+        document.getElementById('live-btn').textContent = '■ 중지';
       }
+    }
+
+    function doCapture() {
+      document.getElementById('cap-status').textContent = '캡처 중...';
+      api('capture').then(r=>r.json()).then(d=>{
+        if(d.error){
+          document.getElementById('cap-status').textContent='Error: '+d.error+(d.log?' ('+d.log+')':'');
+          return;
+        }
+        const c=document.getElementById('still-canvas'), ctx=c.getContext('2d');
+        // 1) 그레이스케일 프레임 그리기
+        if(d.gray && d.w && d.h){
+          const bin=atob(d.gray);
+          const pixels=d.w*d.h;
+          const isRgb=(bin.length>=pixels*3);
+          const id=ctx.createImageData(d.w, d.h);
+          for(let i=0;i<pixels;i++){
+            if(isRgb){
+              id.data[i*4]=bin.charCodeAt(i*3);
+              id.data[i*4+1]=bin.charCodeAt(i*3+1);
+              id.data[i*4+2]=bin.charCodeAt(i*3+2);
+            } else {
+              const v=bin.charCodeAt(i);
+              id.data[i*4]=v; id.data[i*4+1]=v; id.data[i*4+2]=v;
+            }
+            id.data[i*4+3]=255;
+          }
+          // 480x270 → 640x360으로 스케일
+          const tmp=document.createElement('canvas');
+          tmp.width=d.w; tmp.height=d.h;
+          tmp.getContext('2d').putImageData(id,0,0);
+          ctx.drawImage(tmp, 0, 0, c.width, c.height);
+        }
+        // 2) 바운딩 박스 그리기
+        const fw=d.frame_w||1920, fh=d.frame_h||1080;
+        const sx=c.width/fw, sy=c.height/fh;
+        if(d.detections){
+          for(let i=0;i<d.detections.length;i++){
+            const det=d.detections[i];
+            const x=det.x1*sx, y=det.y1*sy, bw=(det.x2-det.x1)*sx, bh=(det.y2-det.y1)*sy;
+            const conf=Math.round(det.conf*100);
+            ctx.strokeStyle=conf>=90?'#ff4444':'#44ff44';
+            ctx.lineWidth=2; ctx.strokeRect(x,y,bw,bh);
+            ctx.fillStyle='rgba(0,0,0,0.6)';
+            ctx.fillRect(x,y-16,80,16);
+            ctx.fillStyle=ctx.strokeStyle;
+            ctx.font='bold 11px monospace';
+            ctx.fillText('Hand '+conf+'%',x+2,y-4);
+          }
+        }
+        document.getElementById('cap-status').textContent=
+          'Det: '+(d.detections?d.detections.length:0)+' | '+d.log;
+      }).catch(e=>{document.getElementById('cap-status').textContent='Error: '+e;});
     }
 
     window.onload = function() {

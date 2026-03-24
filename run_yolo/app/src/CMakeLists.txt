@@ -26,9 +26,5 @@ file(MAKE_DIRECTORY ${APP_BIN})
 file(COPY ${LCM_SOURCE_DIR}/ DESTINATION ${APP_BIN}/)
 file(RENAME ${APP_BIN}/life_cycle_manager ${APP_BIN}/${PROJECT_NAME})
 
-# Copy google_net model
-set(SDK_AI_BIN ${COMMON}/ai_bin/${SOC})
-file(COPY ${SDK_AI_BIN}/ DESTINATION ${APP_RES}/ai_bin/)
-
 # install PLifeCycleManagermanifest.json
 install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/PLifeCycleManagermanifest.json DESTINATION ${APP_BIN})
