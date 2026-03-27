@@ -238,10 +238,9 @@ class HandDetector : public Component {
   int frame_count_ = 0;
   uint32_t frame_width_ = 0;
   uint32_t frame_height_ = 0;
-  float letterbox_scale_x_ = 1.0f;
-  float letterbox_scale_y_ = 1.0f;
-  float letterbox_pad_x_ = 0.0f;
-  float letterbox_pad_y_ = 0.0f;
+  float scale_x_ = 1.0f;  // orig_width / 640.0 (direct resize)
+  float scale_y_ = 1.0f;  // orig_height / 640.0 (direct resize)
+  bool npu_loaded_ = false;
   int last_detection_count_ = 0;
   std::shared_ptr<HandDetectorInfoList> info_list_;
   ManifestInfo manifest_;

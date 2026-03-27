@@ -100,8 +100,7 @@ std::vector<Detection> YoloRawPostProcess(
     const float* cls_p3,  const float* cls_p4,  const float* cls_p5,
     float conf_threshold,
     float iou_threshold,
-    float letterbox_inv_scale,
-    float pad_x, float pad_y,
+    float scale_x, float scale_y,
     int orig_width, int orig_height)
 {
   std::vector<Detection> detections;
@@ -112,12 +111,12 @@ std::vector<Detection> YoloRawPostProcess(
   ProcessScale(bbox_p4, cls_p4, 40, 40, 16, conf_threshold, detections);
   ProcessScale(bbox_p5, cls_p5, 20, 20, 32, conf_threshold, detections);
 
-  // Letterbox 역변환: 640x640 → 원본 해상도
+  // Direct resize 역변환: 640x640 → 원본 해상도
   for (auto& d : detections) {
-    d.x1 = (d.x1 - pad_x) * letterbox_inv_scale;
-    d.y1 = (d.y1 - pad_y) * letterbox_inv_scale;
-    d.x2 = (d.x2 - pad_x) * letterbox_inv_scale;
-    d.y2 = (d.y2 - pad_y) * letterbox_inv_scale;
+    d.x1 = d.x1 * scale_x;
+    d.y1 = d.y1 * scale_y;
+    d.x2 = d.x2 * scale_x;
+    d.y2 = d.y2 * scale_y;
 
     // 원본 프레임 범위로 클리핑
     d.x1 = std::max(0.0f, std::min(d.x1, static_cast<float>(orig_width)));

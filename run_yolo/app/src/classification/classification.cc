@@ -89,6 +89,25 @@ void HandDetector::WriteEventLog(const std::string& message)
 bool HandDetector::Initialize()
 {
   RegisterOpenAPIURI();
+
+  // 이전 크래시 로그 복구 (LoadNeuralNetwork segfault 진단용)
+  {
+    FILE* prev = fopen("/tmp/npu_load.log", "r");
+    if (prev) {
+      AppendLog("=== PREVIOUS CRASH LOG ===");
+      char line[256];
+      while (fgets(line, sizeof(line), prev)) {
+        size_t len = strlen(line);
+        if (len > 0 && line[len-1] == '\n') line[len-1] = '\0';
+        AppendLog(std::string("  ") + line);
+      }
+      AppendLog("=== END CRASH LOG ===");
+      fclose(prev);
+      remove("/tmp/npu_load.log");
+    }
+  }
+
+
   info_list_ = std::make_shared<HandDetectorInfoList>(GetStringComponentVersion());
   PrepareAttributes(info_list_.get(), GetObjectName());
 
@@ -174,73 +193,59 @@ bool HandDetector::LoadNeuralNetwork()
   const std::string model_name = "network_binary.nb";
   const std::string model_path = std::string("../res/ai_bin/") + model_name;
 
-  AppendLog("LoadNeuralNetwork: start (path=" + model_path + ")");
+  // 크래시 진단 파일 로그
+  FILE* lf = fopen("/tmp/npu_load.log", "w");
+  auto logstep = [&](const char* step) {
+    if (lf) { fprintf(lf, "%s\n", step); fflush(lf); }
+    AppendLog(std::string("LoadNPU: ") + step);
+  };
 
+  logstep("GetOrCreateNetwork");
   NeuralNetwork* network = GetOrCreateNetwork(model_name);
-  if (!network) {
-    AppendLog("LoadNeuralNetwork: FAIL GetOrCreateNetwork");
-    return false;
-  }
+  if (!network) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
-  const auto& input_tensor = network->CreateInputTensor("images");
-  if (!input_tensor) {
-    AppendLog("LoadNeuralNetwork: FAIL CreateInputTensor(images)");
-    return false;
-  }
-  AppendLog("LoadNeuralNetwork: CreateInputTensor OK");
+  // hand_detect end-to-end: nbg_meta.json name 필드 기준
+  logstep("CreateInputTensor(images_0)");
+  const auto& input_tensor = network->CreateInputTensor("images_0");
+  if (!input_tensor) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
-  // Raw 모델: 6개 출력 텐서 (bbox P3/P4/P5, cls P3/P4/P5)
-  const char* output_names[] = {"cv2.0", "cv2.1", "cv2.2", "cv3.0", "cv3.1", "cv3.2"};
-  for (int i = 0; i < 6; i++) {
-    const auto& ot = network->CreateOutputTensor(output_names[i]);
-    if (!ot) {
-      AppendLog("LoadNeuralNetwork: FAIL CreateOutputTensor(" + std::string(output_names[i]) + ")");
-      return false;
-    }
-  }
-  AppendLog("LoadNeuralNetwork: CreateOutputTensor x6 OK");
+  logstep("CreateOutputTensor(attach_output0/out0)");
+  const auto& output_tensor = network->CreateOutputTensor("attach_output0/out0");
+  if (!output_tensor) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
+  logstep("LoadNetwork(mean=0, scale=1) — may crash here");
   auto mean  = std::vector<float>{0.0f, 0.0f, 0.0f};
   auto scale = std::vector<float>{1.0f, 1.0f, 1.0f};
-  AppendLog("LoadNeuralNetwork: calling LoadNetwork (mean=0,0,0 scale=1,1,1)");
 
   if (!network->LoadNetwork(model_path, mean, scale)) {
-    AppendLog("LoadNeuralNetwork: FAIL LoadNetwork (path=" + model_path + ")");
+    logstep("FAIL: LoadNetwork returned false");
+    if (lf) fclose(lf);
     return false;
   }
+  logstep("LoadNetwork OK!");
 
-  // 텐서 shape 확인
-  {
-    const std::shared_ptr<Tensor>& in(network->GetInputTensor(0));
-    if (in) {
-      AppendLog("LoadNeuralNetwork: input_tensor shape=[" +
-                std::to_string(in->Length(0)) + "," +
-                std::to_string(in->Length(1)) + "," +
-                std::to_string(in->Length(2)) + "]");
-    } else {
-      AppendLog("LoadNeuralNetwork: WARN GetInputTensor(0) null after load");
-    }
+  int out_cnt = static_cast<int>(network->GetOutputTensorCount());
+  char buf[128];
+  snprintf(buf, sizeof(buf), "SUCCESS! OutputTensorCount=%d", out_cnt);
+  logstep(buf);
 
-    for (int i = 0; i < 6; i++) {
-      const std::shared_ptr<Tensor>& out(network->GetOutputTensor(i));
-      if (out) {
-        int ch = out->Length(0);
-        std::string role = (ch == 64) ? "bbox" : (ch == 1) ? "cls" : "unknown";
-        AppendLog("LoadNeuralNetwork: output[" + std::to_string(i) + "] shape=[" +
-                  std::to_string(out->Length(0)) + "," +
-                  std::to_string(out->Length(1)) + "," +
-                  std::to_string(out->Length(2)) + "] (" + role + ")");
-      } else {
-        AppendLog("LoadNeuralNetwork: WARN GetOutputTensor(" + std::to_string(i) + ") null after load");
-      }
+  for (int i = 0; i < out_cnt; i++) {
+    const auto& ot = network->GetOutputTensor(i);
+    if (ot) {
+      snprintf(buf, sizeof(buf), "output[%d] shape=[%u,%u,%u]",
+               i, ot->Length(0), ot->Length(1), ot->Length(2));
+      logstep(buf);
     }
   }
 
-  npu_load_info_.model_name_          = model_name;
-  npu_load_info_.input_tensor_names_  = "images";
-  npu_load_info_.output_tensor_names_ = "cv2.0,cv2.1,cv2.2,cv3.0,cv3.1,cv3.2";
+  npu_load_info_.model_name_ = model_name;
+  npu_load_info_.input_tensor_names_ = "images_0";
+  npu_load_info_.output_tensor_names_ = "attach_output0/out0";
 
-  AppendLog("LoadNeuralNetwork: OK (model=" + model_name + ")");
+  if (lf) fclose(lf);
+  remove("/tmp/npu_load.log");
+
+  AppendLog("LoadNeuralNetwork: SUCCESS");
   WriteEventLog("HandDetector: NPU model loaded OK");
   return true;
 }
@@ -253,7 +258,6 @@ void HandDetector::Start()
   WriteEventLog("HandDetector Start OK");
   if (!LoadNeuralNetwork()) {
     AppendLog("Start: LoadNeuralNetwork FAILED");
-    WriteEventLog("HandDetector: NPU model load FAILED");
   }
 }
 
@@ -560,14 +564,6 @@ void HandDetector::ProcessRawVideo(Event* event)
 {
   if (event == nullptr || event->IsReply()) return;
 
-  auto& network_map = GetAllNetworks();
-  if (network_map.empty()) {
-    static int empty_map_cnt = 0;
-    if (++empty_map_cnt == 1)
-      AppendLog("ProcessRawVideo: WARN network_map empty (model not loaded?)");
-    return;
-  }
-
   auto blob = event->GetBlobArgument();
   event->ClearBaseObjectArgument();
 
@@ -598,6 +594,9 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
 {
   if (!run_flag_) return;
   if (!img) return;
+
+  // 모델은 Start()에서 이미 로딩됨
+  if (npu_load_info_.model_name_.empty()) return;  // 로딩 실패 시 skip
 
   int skip = info_list_->app_attribute_info.skip_frames;
   if (skip > 0 && (frame_count_ % (skip + 1)) != 0) {
@@ -669,19 +668,25 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
 
   auto t0 = chrono::steady_clock::now();
   if (!PreProcess(rgb)) {
-    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PreProcess");
+    static int pp_fail = 0;
+    if (++pp_fail <= 3)
+      AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PreProcess");
     return;
   }
 
   auto t1 = chrono::steady_clock::now();
   if (!Execute()) {
-    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL Execute");
+    static int ex_fail = 0;
+    if (++ex_fail <= 3)
+      AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL Execute");
     return;
   }
 
   auto t2 = chrono::steady_clock::now();
   if (!PostProcess()) {
-    AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PostProcess");
+    static int pp2_fail = 0;
+    if (++pp2_fail <= 3)
+      AppendLog("Inference #" + std::to_string(inf_cnt) + ": FAIL PostProcess");
     return;
   }
 
@@ -691,8 +696,13 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
   float inf_ms  = chrono::duration<float, milli>(t2 - t1).count();
   float post_ms = chrono::duration<float, milli>(t3 - t2).count();
 
-  static int log_count = 0;
-  if (++log_count % 10 == 0) {
+  // MQTT: heartbeat 5초 1회 + detection 즉시
+  static auto last_hb = chrono::steady_clock::now();
+  auto now_hb = chrono::steady_clock::now();
+  bool is_heartbeat = chrono::duration<float>(now_hb - last_hb).count() >= 5.0f;
+
+  if (is_heartbeat) {
+    last_hb = now_hb;
     AppendLog("Timing #" + std::to_string(inf_cnt) +
               ": pre=" + std::to_string((int)pre_ms) +
               "ms inf=" + std::to_string((int)inf_ms) +
@@ -700,16 +710,20 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
               "ms det=" + std::to_string(last_detection_count_));
     mqtt_.PublishDebug(pre_ms, inf_ms, post_ms, last_detection_count_);
   }
-  // 매 프레임 감지 결과 MQTT 발행
-  mqtt_.PublishDetection(inf_cnt, last_detection_count_,
-      last_detection_count_ > 0 ? 1.0f : 0.0f);
+
+  if (last_detection_count_ > 0) {
+    mqtt_.PublishDetection(inf_cnt, last_detection_count_,
+        last_detection_count_ > 0 ? 1.0f : 0.0f);
+  }
 }
 
 bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
   if (!network) {
-    AppendLog("PreProcess: FAIL GetNetwork(\"" + npu_load_info_.model_name_ + "\") returned null");
+    static int net_fail = 0;
+    if (++net_fail <= 3)
+      AppendLog("PreProcess: FAIL GetNetwork(\"" + npu_load_info_.model_name_ + "\") returned null");
     return false;
   }
 
@@ -720,8 +734,8 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
   }
 
   img_size_t size = {
-    .width  = input_tensor->Length(0),
-    .height = input_tensor->Length(1)
+    .width  = 640,
+    .height = 640
   };
 
   static bool resize_logged = false;
@@ -732,9 +746,11 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
   }
 
   if (!rgb->Resize(*input_tensor, size)) {
-    AppendLog("PreProcess: FAIL Resize to [" +
-              std::to_string(size.width) + "x" + std::to_string(size.height) + "]" +
-              " src=[" + std::to_string(frame_width_) + "x" + std::to_string(frame_height_) + "]");
+    static int resize_fail = 0;
+    if (++resize_fail <= 3)
+      AppendLog("PreProcess: FAIL Resize to [" +
+                std::to_string(size.width) + "x" + std::to_string(size.height) + "]" +
+                " src=[" + std::to_string(frame_width_) + "x" + std::to_string(frame_height_) + "]");
     return false;
   }
 
@@ -761,15 +777,10 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
       const int plane = tw * th;  // 409600
       const int cw = 320, ch = 180;
 
-      // letterbox 영역: 640x640 중 실제 이미지 y=[140,500]
-      int img_h = tw * (int)frame_height_ / (int)frame_width_;  // 360
-      int img_y_start = (th - img_h) / 2;  // 140
-      if (img_y_start < 0) img_y_start = 0;
-      if (img_h > th) img_h = th;
-
+      // Direct resize: 전체 640x640이 유효 영역 (패딩 없음)
       std::vector<uint8_t> buf(cw * ch * 3);
       for (int j = 0; j < ch; j++) {
-        int sy = img_y_start + j * img_h / ch;
+        int sy = j * th / ch;
         if (sy >= th) sy = th - 1;
         for (int i = 0; i < cw; i++) {
           int sx = i * tw / cw;
@@ -787,21 +798,14 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
   }
 
   if (frame_width_ > 0 && frame_height_ > 0) {
-    // letterbox: 가로/세로 동일 비율로 축소, 나머지 패딩
-    float scale = std::min(static_cast<float>(size.width) / frame_width_,
-                           static_cast<float>(size.height) / frame_height_);
-    float new_w = frame_width_ * scale;
-    float new_h = frame_height_ * scale;
-    letterbox_pad_x_ = (size.width - new_w) / 2.0f;   // 0
-    letterbox_pad_y_ = (size.height - new_h) / 2.0f;   // 140
-    letterbox_scale_x_ = 1.0f / scale;  // 3.0
-    letterbox_scale_y_ = 1.0f / scale;  // 3.0 (x와 동일!)
+    // Direct resize: 640x640으로 직접 스트레칭 (패딩 없음)
+    scale_x_ = static_cast<float>(frame_width_)  / static_cast<float>(size.width);
+    scale_y_ = static_cast<float>(frame_height_) / static_cast<float>(size.height);
 
     static bool scale_logged = false;
     if (!scale_logged) {
-      AppendLog("PreProcess: letterbox scale=" + std::to_string(1.0f/scale) +
-                " pad_x=" + std::to_string(letterbox_pad_x_) +
-                " pad_y=" + std::to_string(letterbox_pad_y_) +
+      AppendLog("PreProcess: direct resize scale_x=" + std::to_string(scale_x_) +
+                " scale_y=" + std::to_string(scale_y_) +
                 " (frame " + std::to_string(frame_width_) + "x" + std::to_string(frame_height_) +
                 " -> model " + std::to_string(size.width) + "x" + std::to_string(size.height) + ")");
       scale_logged = true;
@@ -834,51 +838,158 @@ bool HandDetector::PostProcess()
     return false;
   }
 
-  // Raw 모델: 6개 출력 텐서 획득
-  const float* tensor_ptrs[6] = {};
-  for (int i = 0; i < 6; i++) {
-    const std::shared_ptr<Tensor>& t(network->GetOutputTensor(i));
-    if (!t) {
-      AppendLog("PostProcess: FAIL GetOutputTensor(" + std::to_string(i) + ") null");
-      return false;
-    }
-    tensor_ptrs[i] = static_cast<const float*>(t->VirtAddr());
-    if (!tensor_ptrs[i]) {
-      AppendLog("PostProcess: FAIL VirtAddr() null for output " + std::to_string(i));
-      return false;
-    }
+  // YOLOv7 raw logit: 단일 출력 텐서 (1, 25200, 6)
+  // 각 anchor: [tx, ty, tw, th, obj_logit, cls_logit] (stride 6)
+  // sigmoid + grid decode 필요
+  const std::shared_ptr<Tensor>& output_tensor(network->GetOutputTensor(0));
+  if (!output_tensor) {
+    AppendLog("PostProcess: FAIL GetOutputTensor(0) null");
+    return false;
+  }
+  const float* raw = static_cast<const float*>(output_tensor->VirtAddr());
+  if (!raw) {
+    AppendLog("PostProcess: FAIL VirtAddr() null");
+    return false;
   }
 
-  // Shape 기반 bbox/cls 분류 및 로깅 (첫 3프레임)
+  const int N = 25200;       // YOLOv7 640x640: 80*80*3 + 40*40*3 + 20*20*3
+  const int S = 6;           // tx, ty, tw, th, obj_logit, cls_logit
+  auto& attr = info_list_->app_attribute_info;
+
+  // --- 앵커 그리드 사전 생성 (한 번만) ---
+  struct AnchorInfo { float grid_x, grid_y, stride, anchor_w, anchor_h; };
+  static std::vector<AnchorInfo> anchor_grid;
+  if (anchor_grid.empty()) {
+    // YOLOv7 COCO default anchors
+    const float anchors[][6] = {
+      {12,16,  19,36,  40,28},   // P3 stride=8
+      {36,75,  76,55,  72,146},  // P4 stride=16
+      {142,110, 192,243, 459,401} // P5 stride=32
+    };
+    const int strides[] = {8, 16, 32};
+    const int grids[]   = {80, 40, 20};
+
+    anchor_grid.reserve(N);
+    for (int lv = 0; lv < 3; lv++) {
+      int gs = grids[lv];
+      for (int gy = 0; gy < gs; gy++) {
+        for (int gx = 0; gx < gs; gx++) {
+          for (int a = 0; a < 3; a++) {
+            anchor_grid.push_back({
+              static_cast<float>(gx),
+              static_cast<float>(gy),
+              static_cast<float>(strides[lv]),
+              anchors[lv][a * 2],
+              anchors[lv][a * 2 + 1]
+            });
+          }
+        }
+      }
+    }
+    AppendLog("AnchorGrid: built " + std::to_string(anchor_grid.size()) + " anchors");
+  }
+
+  auto sigmoid = [](float x) -> float { return 1.0f / (1.0f + expf(-x)); };
+
+  // 진단 로그
   static int pp_logged = 0;
   if (++pp_logged <= 3) {
-    for (int i = 0; i < 6; i++) {
-      const auto& t = network->GetOutputTensor(i);
-      int ch = t->Length(0);
-      AppendLog("PostProcess: output[" + std::to_string(i) + "] ch=" + std::to_string(ch) +
-                " h=" + std::to_string(t->Length(1)) + " w=" + std::to_string(t->Length(2)));
+    AppendLog("PostProcess: output shape=[" +
+              std::to_string(output_tensor->Length(0)) + "," +
+              std::to_string(output_tensor->Length(1)) + "," +
+              std::to_string(output_tensor->Length(2)) + "]");
+    std::string sample;
+    for (int i = 0; i < S; i++)
+      sample += std::to_string(raw[i]) + " ";
+    AppendLog("PostProcess: raw logit (anchor0): " + sample);
+    // sigmoid 적용 후 값
+    float obj0 = sigmoid(raw[4]);
+    float cls0 = sigmoid(raw[5]);
+    AppendLog("PostProcess: anchor0 sigmoid obj=" + std::to_string(obj0) +
+              " cls=" + std::to_string(cls0) + " conf=" + std::to_string(obj0 * cls0));
+  }
+
+  // 진단: 전체 anchor 중 max confidence (sigmoid 적용 후)
+  static int diag_cnt = 0;
+  if (++diag_cnt <= 10 || diag_cnt % 30 == 1) {
+    float max_obj = 0, max_cls = 0, max_conf = 0;
+    int max_idx = -1;
+    for (int i = 0; i < N; i++) {
+      float o = sigmoid(raw[i * S + 4]);
+      float c = sigmoid(raw[i * S + 5]);
+      float f = o * c;
+      if (f > max_conf) { max_conf = f; max_obj = o; max_cls = c; max_idx = i; }
+    }
+    AppendLog("Diag: max_conf=" + std::to_string(max_conf) +
+              " (obj=" + std::to_string(max_obj) + " cls=" + std::to_string(max_cls) +
+              ") anchor=" + std::to_string(max_idx));
+    if (max_idx >= 0) {
+      const auto& ag = anchor_grid[max_idx];
+      float cx = (sigmoid(raw[max_idx * S + 0]) * 2.0f - 0.5f + ag.grid_x) * ag.stride;
+      float cy = (sigmoid(raw[max_idx * S + 1]) * 2.0f - 0.5f + ag.grid_y) * ag.stride;
+      float w  = powf(sigmoid(raw[max_idx * S + 2]) * 2.0f, 2) * ag.anchor_w;
+      float h  = powf(sigmoid(raw[max_idx * S + 3]) * 2.0f, 2) * ag.anchor_h;
+      AppendLog("Diag: best bbox cx=" + std::to_string(cx) + " cy=" + std::to_string(cy) +
+                " w=" + std::to_string(w) + " h=" + std::to_string(h) +
+                " grid=(" + std::to_string((int)ag.grid_x) + "," + std::to_string((int)ag.grid_y) +
+                ") stride=" + std::to_string((int)ag.stride));
     }
   }
 
-  // bbox: index 0,1,2 (64ch), cls: index 3,4,5 (1ch)
-  const float* bbox_p3 = tensor_ptrs[0];
-  const float* bbox_p4 = tensor_ptrs[1];
-  const float* bbox_p5 = tensor_ptrs[2];
-  const float* cls_p3  = tensor_ptrs[3];
-  const float* cls_p4  = tensor_ptrs[4];
-  const float* cls_p5  = tensor_ptrs[5];
+  // Detection loop: sigmoid + grid decode
+  std::vector<Detection> detections;
+  for (int i = 0; i < N; i++) {
+    float obj = sigmoid(raw[i * S + 4]);
+    float cls = sigmoid(raw[i * S + 5]);
+    float conf = obj * cls;
+    if (conf < attr.confidence_threshold) continue;
 
-  auto& attr = info_list_->app_attribute_info;
-  auto detections = YoloRawPostProcess(
-      bbox_p3, bbox_p4, bbox_p5,
-      cls_p3, cls_p4, cls_p5,
-      attr.confidence_threshold,
-      attr.nms_iou_threshold,
-      letterbox_scale_x_,
-      letterbox_pad_x_,
-      letterbox_pad_y_,
-      static_cast<int>(frame_width_),
-      static_cast<int>(frame_height_));
+    const auto& ag = anchor_grid[i];
+    float cx = (sigmoid(raw[i * S + 0]) * 2.0f - 0.5f + ag.grid_x) * ag.stride;
+    float cy = (sigmoid(raw[i * S + 1]) * 2.0f - 0.5f + ag.grid_y) * ag.stride;
+    float w  = powf(sigmoid(raw[i * S + 2]) * 2.0f, 2) * ag.anchor_w;
+    float h  = powf(sigmoid(raw[i * S + 3]) * 2.0f, 2) * ag.anchor_h;
+
+    Detection d;
+    d.x1 = (cx - w / 2.0f) * scale_x_;
+    d.y1 = (cy - h / 2.0f) * scale_y_;
+    d.x2 = (cx + w / 2.0f) * scale_x_;
+    d.y2 = (cy + h / 2.0f) * scale_y_;
+    d.confidence = conf;
+    d.class_id = 0;
+
+    d.x1 = std::max(0.0f, std::min(d.x1, static_cast<float>(frame_width_)));
+    d.y1 = std::max(0.0f, std::min(d.y1, static_cast<float>(frame_height_)));
+    d.x2 = std::max(0.0f, std::min(d.x2, static_cast<float>(frame_width_)));
+    d.y2 = std::max(0.0f, std::min(d.y2, static_cast<float>(frame_height_)));
+
+    if (d.x2 > d.x1 && d.y2 > d.y1)
+      detections.push_back(d);
+  }
+
+  // NMS
+  std::sort(detections.begin(), detections.end(),
+            [](const Detection& a, const Detection& b) { return a.confidence > b.confidence; });
+  std::vector<Detection> nms_result;
+  std::vector<bool> suppressed(detections.size(), false);
+  for (size_t i = 0; i < detections.size(); i++) {
+    if (suppressed[i]) continue;
+    nms_result.push_back(detections[i]);
+    if (nms_result.size() >= 100) break;
+    for (size_t j = i + 1; j < detections.size(); j++) {
+      if (suppressed[j]) continue;
+      float ix1 = std::max(detections[i].x1, detections[j].x1);
+      float iy1 = std::max(detections[i].y1, detections[j].y1);
+      float ix2 = std::min(detections[i].x2, detections[j].x2);
+      float iy2 = std::min(detections[i].y2, detections[j].y2);
+      float inter = std::max(0.0f, ix2-ix1) * std::max(0.0f, iy2-iy1);
+      float a1 = (detections[i].x2-detections[i].x1) * (detections[i].y2-detections[i].y1);
+      float a2 = (detections[j].x2-detections[j].x1) * (detections[j].y2-detections[j].y1);
+      if (inter / (a1 + a2 - inter) > attr.nms_iou_threshold)
+        suppressed[j] = true;
+    }
+  }
+  detections = std::move(nms_result);
 
   // 주기적 디버그 로그
   static int pp_cnt = 0;
