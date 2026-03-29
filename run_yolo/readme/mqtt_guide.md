@@ -1,3 +1,41 @@
+# Hand Detector 빌드 및 배포
+
+## 빌드
+
+```bash
+cd c:\opensdk\SampleApplication\run_yolo
+
+# 빌드 캐시 제거 (CMake 캐시 문제 시)
+docker compose run --rm opensdk rm -rf /opt/hand_detector/app/build
+
+# 빌드 + 패키징 (hand_detector.cap 생성)
+docker compose up
+
+# 컨테이너 정리
+docker compose down --remove-orphans
+```
+
+빌드 결과물: `hand_detector.cap`
+
+## 카메라 배포
+
+```bash
+opensdk_install -a hand_detector -i 192.168.5.60 -u admin -w {비밀번호}
+```
+
+## 디버그 콘솔 접속
+
+브라우저에서:
+```
+http://192.168.5.60/opensdk/hand_detector_Czyc3/configuration
+```
+
+- `Start` 버튼으로 추론 시작
+- `Stop` 버튼으로 추론 중지
+- `Info` 버튼으로 상태 확인
+
+---
+
 # MQTT 로그 수신 가이드
 
 ## 개요
@@ -36,7 +74,7 @@ allow_anonymous true
 ## 2. 카메라 앱 설정
 
 브로커 주소는 앱 attribute에서 설정됩니다:
-- `mqtt_broker_host`: 브로커 IP (기본값: `192.168.9.199`)
+- `mqtt_broker_host`: 브로커 IP (기본값: `192.168.1.80`)
 - `mqtt_broker_port`: 포트 (기본값: `1883`)
 
 웹 UI(`/mode=config`)에서 변경하거나, `Classification_default_attribute_0.json`에서 직접 수정 가능.
