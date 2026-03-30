@@ -515,7 +515,9 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
         "\"nms_iou_threshold\":" + std::to_string(attr.nms_iou_threshold) + "," +
         "\"skip_frames\":" + std::to_string(attr.skip_frames) + "," +
         "\"alarm_on_threshold\":" + std::to_string(attr.alarm_on_threshold) + "," +
-        "\"alarm_off_threshold\":" + std::to_string(attr.alarm_off_threshold) +
+        "\"alarm_off_threshold\":" + std::to_string(attr.alarm_off_threshold) + "," +
+        "\"mqtt_broker_host\":\"" + attr.mqtt_broker_host + "\"," +
+        "\"mqtt_broker_port\":" + std::to_string(attr.mqtt_broker_port) +
         "}";
     param->SetStatusCode(200);
     param->SetResponseBody(resp);
@@ -712,8 +714,12 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
   }
 
   if (last_detection_count_ > 0) {
-    mqtt_.PublishDetection(inf_cnt, last_detection_count_,
-        last_detection_count_ > 0 ? 1.0f : 0.0f);
+    float mqtt_conf = 0.0f;
+    {
+      std::lock_guard<std::mutex> lock(detections_mutex_);
+      if (!last_detections_.empty()) mqtt_conf = last_detections_[0].confidence;
+    }
+    mqtt_.PublishDetection(inf_cnt, last_detection_count_, mqtt_conf);
   }
 }
 
@@ -872,9 +878,9 @@ bool HandDetector::PostProcess()
     anchor_grid.reserve(N);
     for (int lv = 0; lv < 3; lv++) {
       int gs = grids[lv];
-      for (int gy = 0; gy < gs; gy++) {
-        for (int gx = 0; gx < gs; gx++) {
-          for (int a = 0; a < 3; a++) {
+      for (int a = 0; a < 3; a++) {          // anchor가 가장 바깥 (PyTorch 순서)
+        for (int gy = 0; gy < gs; gy++) {
+          for (int gx = 0; gx < gs; gx++) {
             anchor_grid.push_back({
               static_cast<float>(gx),
               static_cast<float>(gy),

@@ -62,6 +62,26 @@
   </div>
 
   <div class="section">
+    <div class="section-title">설정</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <label style="color:#808080;font-size:13px">Confidence
+        <input type="range" id="conf-slider" min="0.05" max="0.95" step="0.05" value="0.75"
+               oninput="document.getElementById('conf-val').textContent=this.value">
+        <span id="conf-val" style="color:#4ec9b0">0.75</span>
+      </label>
+      <label style="color:#808080;font-size:13px">NMS IoU
+        <input type="range" id="nms-slider" min="0.1" max="0.9" step="0.05" value="0.45"
+               oninput="document.getElementById('nms-val').textContent=this.value">
+        <span id="nms-val" style="color:#4ec9b0">0.45</span>
+      </label>
+      <label style="color:#808080;font-size:13px">MQTT Broker
+        <input type="text" id="mqtt-host" value="192.168.1.80" style="width:130px;background:#0d0d0d;color:#4ec9b0;border:1px solid #3c3c3c;padding:2px 6px;font-family:monospace;font-size:13px">
+      </label>
+      <button onclick="applyConfig()">적용</button>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title">디버그 로그</div>
     <button onclick="fetchLogs()">⟳ Refresh Logs</button>
     <button onclick="clearLogs()" class="danger">✕ Clear Logs</button>
@@ -113,10 +133,35 @@
       api('stop').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
     function doInfo() {
-      api('info').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));updateStatusBar(d);fetchLogs()}).catch(e=>setResponse('Error: '+e));
+      api('info').then(r=>r.json()).then(d=>{
+        setResponse(JSON.stringify(d));updateStatusBar(d);fetchLogs();
+        if(d.confidence_threshold!=null){
+          document.getElementById('conf-slider').value=d.confidence_threshold;
+          document.getElementById('conf-val').textContent=d.confidence_threshold.toFixed(2);
+        }
+        if(d.nms_iou_threshold!=null){
+          document.getElementById('nms-slider').value=d.nms_iou_threshold;
+          document.getElementById('nms-val').textContent=d.nms_iou_threshold.toFixed(2);
+        }
+        if(d.mqtt_broker_host){
+          document.getElementById('mqtt-host').value=d.mqtt_broker_host;
+        }
+      }).catch(e=>setResponse('Error: '+e));
     }
     function doTest() {
       api('test').then(r=>r.json()).then(d=>{setResponse(JSON.stringify(d));fetchLogs()}).catch(e=>setResponse('Error: '+e));
+    }
+    function applyConfig() {
+      const conf = parseFloat(document.getElementById('conf-slider').value);
+      const nms = parseFloat(document.getElementById('nms-slider').value);
+      const mqttHost = document.getElementById('mqtt-host').value.trim();
+      const body = { mode: 'config', confidence_threshold: conf, nms_iou_threshold: nms };
+      if (mqttHost) body.mqtt_broker_host = mqttHost;
+      fetch(base_uri, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(r=>r.json()).then(d=>{setResponse('Config: conf='+conf+' nms='+nms+' mqtt='+mqttHost);fetchLogs()}).catch(e=>setResponse('Error: '+e));
     }
 
     function fetchLogs() {

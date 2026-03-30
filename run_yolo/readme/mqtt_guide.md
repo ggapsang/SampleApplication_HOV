@@ -83,18 +83,22 @@ allow_anonymous true
 
 ### 전체 로그 수신
 ```bash
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.1.80 -t "hand/#" -v
 mosquitto_sub -h <브로커IP> -t "hand/#" -v
 ```
 
 ### 토픽별 수신
 ```bash
 # 감지 결과만
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.1.80 -t "hand/detection" -v
 mosquitto_sub -h <브로커IP> -t "hand/detection" -v
 
 # Timing (heartbeat)
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.1.80 -t "hand/debug" -v
 mosquitto_sub -h <브로커IP> -t "hand/debug" -v
 
 # 상태 변경
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.1.80 -t "hand/status" -v
 mosquitto_sub -h <브로커IP> -t "hand/status" -v
 ```
 
