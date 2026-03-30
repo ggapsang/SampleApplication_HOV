@@ -159,7 +159,7 @@ docker compose up
 docker compose down --remove-orphans
 
 # 설치
-opensdk_install -a hand_detector -i 192.168.5.60 -u admin -w {password}
+opensdk_install -a hand_detector -i 192.168.2.60 -u admin -w {password}
 ```
 
 결과물: `hand_detector.cap`
