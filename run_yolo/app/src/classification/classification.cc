@@ -547,6 +547,14 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     JsonUtility::get(doc, "alarm_off_threshold", attr.alarm_off_threshold);
     JsonUtility::get(doc, "alarm_cooldown_sec", attr.alarm_cooldown_sec);
 
+    // MQTT 재연결 (host가 변경됐거나 미연결 시)
+    if (!attr.mqtt_broker_host.empty()) {
+      mqtt_.Disconnect();
+      bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port);
+      AppendLog("MQTT: reconnect " + std::string(ok ? "OK " : "FAILED ") +
+                attr.mqtt_broker_host + ":" + std::to_string(attr.mqtt_broker_port));
+    }
+
     WriteAttributes(info_list_.get(), this->GetObjectName());
     AppendLog("mode=config updated: conf=" + std::to_string(attr.confidence_threshold) +
               " nms=" + std::to_string(attr.nms_iou_threshold));
