@@ -442,7 +442,7 @@ docker compose down --remove-orphans  # 정리
 ### 9.2 카메라 설치
 
 ```bash
-opensdk_install -a hand_detector -i 192.168.5.60 -u admin -w {password}
+opensdk_install -a hand_detector -i 192.168.2.80 -u admin -w {password}
 ```
 
 또는 카메라 웹 UI > Setup > Open Platform 에서 .cap 파일 업로드.

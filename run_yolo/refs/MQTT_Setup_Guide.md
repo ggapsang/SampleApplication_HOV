@@ -1,6 +1,6 @@
 # MQTT 실시간 로그 수신 가이드
 
-> 카메라(192.168.5.60) → PC(192.168.9.199) MQTT 브로커 → mosquitto_sub
+> 카메라(192.168.2.60) → PC(192.168.2.80) MQTT 브로커 → mosquitto_sub
 
 ---
 
@@ -45,7 +45,7 @@ cd "C:\Program Files\Mosquitto"
 
 **파일**: `app/src/classification/includes/classification.h`
 ```cpp
-std::string mqtt_broker_host = "192.168.9.199";  // ← PC IP 변경
+std::string mqtt_broker_host = "192.168.2.80";  // ← PC IP 변경
 int mqtt_broker_port = 1883;
 ```
 
