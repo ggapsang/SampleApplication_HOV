@@ -1,0 +1,32 @@
+{
+  "model": {
+    "file": "network_binary.nb",
+    "input_width": 640,
+    "input_height": 640,
+    "input_tensor": "images_0",
+    "output_tensors": ["attach_output0/out0"],
+    "mean": [0.0, 0.0, 0.0],
+    "scale": [1.0, 1.0, 1.0]
+  },
+  "postprocess": {
+    "num_classes": 1,
+    "max_detections": 100,
+    "anchors": [
+      [12, 16, 19, 36, 40, 28],
+      [36, 75, 76, 55, 72, 146],
+      [142, 110, 192, 243, 459, 401]
+    ],
+    "strides": [8, 16, 32],
+    "num_anchors_per_level": 3
+  },
+  "classes": ["hand"],
+  "display": {
+    "name": "Hand",
+    "osd_format": "{name}: {count} | Conf: {conf}%",
+    "osd_no_detection": "{name}: 0"
+  },
+  "mqtt": {
+    "topic_prefix": "hand",
+    "client_id": "hand_detector"
+  }
+}

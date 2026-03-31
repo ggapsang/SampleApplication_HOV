@@ -1,5 +1,5 @@
 {
-  "AppName": "hand_detector",
+  "AppName": "object_detector",
   "AppVersion": "1.0",
   "Permission": [
     "SDCard",

@@ -176,7 +176,7 @@ void MqttLogger::PublishDetection(int frame_id, int det_count, float max_conf)
   std::string json = "{\"frame\":" + std::to_string(frame_id) +
                      ",\"det\":" + std::to_string(det_count) +
                      ",\"conf\":" + std::to_string((int)(max_conf * 100)) + "}";
-  Publish("hand/detection", json);
+  Publish(topic_prefix_ + "/detection", json);
 }
 
 void MqttLogger::PublishDebug(float pre_ms, float inf_ms, float post_ms, int det_count)
@@ -186,11 +186,11 @@ void MqttLogger::PublishDebug(float pre_ms, float inf_ms, float post_ms, int det
                      ",\"inf\":" + std::to_string((int)inf_ms) +
                      ",\"post\":" + std::to_string((int)post_ms) +
                      ",\"det\":" + std::to_string(det_count) + "}";
-  Publish("hand/debug", json);
+  Publish(topic_prefix_ + "/debug", json);
 }
 
 void MqttLogger::PublishStatus(const std::string& state, const std::string& model)
 {
   if (!connected_) return;
-  Publish("hand/status", "{\"state\":\"" + state + "\",\"model\":\"" + model + "\"}");
+  Publish(topic_prefix_ + "/status", "{\"state\":\"" + state + "\",\"model\":\"" + model + "\"}");
 }

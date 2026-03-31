@@ -1,4 +1,4 @@
-set(TARGET_LIB hand_detector)
+set(TARGET_LIB object_detector)
 
 set(NPU_API_DIR ${WISENET_PRODUCT_RELEASE_PATH}/lib/npu_api/)
 
@@ -46,6 +46,7 @@ add_library(${TARGET_LIB} MODULE
   classification.cc
   yolo_postprocess.cc
   mqtt_logger.cc
+  model_config.cc
 )
 
 target_link_directories(${TARGET_LIB} PRIVATE ${NPU_API_DIR}/libs)

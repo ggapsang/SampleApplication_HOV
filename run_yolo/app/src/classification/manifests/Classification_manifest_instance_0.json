@@ -1,8 +1,8 @@
 {
-  "LibraryFileName": "libhand_detector.so",
+  "LibraryFileName": "libobject_detector.so",
   "Instance": {
-    "InstanceName": "HandDetector",
-    "SchedulerName": "HandDetectorScheduler",
+    "InstanceName": "ObjectDetector",
+    "SchedulerName": "ObjectDetectorScheduler",
     "ReceiverNames": [
       "AppDispatcher",
       {

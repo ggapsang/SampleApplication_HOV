@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2.2)
 
-project(hand_detector)
+project(object_detector)
 
 set(TARGET_EXE ${PROJECT_NAME})
 

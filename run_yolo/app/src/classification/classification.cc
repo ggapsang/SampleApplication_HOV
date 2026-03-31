@@ -44,21 +44,21 @@ static std::string Base64Encode(const uint8_t* data, size_t len) {
   return out;
 }
 
-HandDetector::HandDetector()
-  : HandDetector(kComponentId, "HandDetector")
+ObjectDetector::ObjectDetector()
+  : ObjectDetector(kComponentId, "ObjectDetector")
 {
 }
 
-HandDetector::HandDetector(ClassID id, const char* name)
+ObjectDetector::ObjectDetector(ClassID id, const char* name)
   : base(id, name)
 {
 }
 
-HandDetector::~HandDetector()
+ObjectDetector::~ObjectDetector()
 {
 }
 
-void HandDetector::AppendLog(const std::string& msg)
+void ObjectDetector::AppendLog(const std::string& msg)
 {
   char ts[32];
   time_t t = time(NULL);
@@ -70,7 +70,7 @@ void HandDetector::AppendLog(const std::string& msg)
   DebugLog("%s", entry.c_str());
 }
 
-void HandDetector::WriteEventLog(const std::string& message)
+void ObjectDetector::WriteEventLog(const std::string& message)
 {
   AppendLog("WriteEventLog: " + message);
   auto* log = new Log(
@@ -86,7 +86,7 @@ void HandDetector::WriteEventLog(const std::string& message)
       log);
 }
 
-bool HandDetector::Initialize()
+bool ObjectDetector::Initialize()
 {
   RegisterOpenAPIURI();
 
@@ -108,7 +108,12 @@ bool HandDetector::Initialize()
   }
 
 
-  info_list_ = std::make_shared<HandDetectorInfoList>(GetStringComponentVersion());
+  // 모델 설정 로드
+  LoadModelConfig("../res/ai_bin/model_config.json", model_cfg_);
+  AppendLog("ModelConfig: file=" + model_cfg_.model.file +
+            " display=" + model_cfg_.display.name);
+
+  info_list_ = std::make_shared<ObjectDetectorInfoList>(GetStringComponentVersion());
   PrepareAttributes(info_list_.get(), GetObjectName());
 
   std::string manifest_path = "../../config/app_manifest.json";
@@ -132,23 +137,24 @@ bool HandDetector::Initialize()
   }
 
   // MQTT 연결
+  mqtt_.SetTopicPrefix(model_cfg_.mqtt.topic_prefix);
   auto& attr = info_list_->app_attribute_info;
   if (!attr.mqtt_broker_host.empty()) {
-    bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port);
+    bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port, model_cfg_.mqtt.client_id);
     AppendLog("MQTT: " + std::string(ok ? "connected to " : "FAILED to connect ") +
               attr.mqtt_broker_host + ":" + std::to_string(attr.mqtt_broker_port));
-    if (ok) mqtt_.PublishStatus("initialized", "network_binary.nb");
+    if (ok) mqtt_.PublishStatus("initialized", model_cfg_.model.file);
   } else {
     AppendLog("MQTT: broker host not configured (skipped)");
   }
 
   AppendLog("Initialize called");
-  DebugLog("HandDetector Initialize");
-  WriteEventLog("HandDetector Initialize OK");
+  DebugLog("ObjectDetector Initialize");
+  WriteEventLog("ObjectDetector Initialize OK");
   return Component::Initialize();
 }
 
-bool HandDetector::ParseManifest(const std::string& manifest_path, ManifestInfo& info)
+bool ObjectDetector::ParseManifest(const std::string& manifest_path, ManifestInfo& info)
 {
   std::ifstream manifest_stream(manifest_path.c_str());
   if (!manifest_stream.is_open()) {
@@ -175,7 +181,7 @@ bool HandDetector::ParseManifest(const std::string& manifest_path, ManifestInfo&
   return true;
 }
 
-void HandDetector::RegisterOpenAPIURI()
+void ObjectDetector::RegisterOpenAPIURI()
 {
   Vector<String> methods;
   methods.push_back("POST");
@@ -188,9 +194,9 @@ void HandDetector::RegisterOpenAPIURI()
                    0, uriRequest);
 }
 
-bool HandDetector::LoadNeuralNetwork()
+bool ObjectDetector::LoadNeuralNetwork()
 {
-  const std::string model_name = "network_binary.nb";
+  const std::string model_name = model_cfg_.model.file;
   const std::string model_path = std::string("../res/ai_bin/") + model_name;
 
   // 크래시 진단 파일 로그
@@ -204,18 +210,20 @@ bool HandDetector::LoadNeuralNetwork()
   NeuralNetwork* network = GetOrCreateNetwork(model_name);
   if (!network) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
-  // hand_detect end-to-end: nbg_meta.json name 필드 기준
-  logstep("CreateInputTensor(images_0)");
-  const auto& input_tensor = network->CreateInputTensor("images_0");
+  const std::string& input_name = model_cfg_.model.input_tensor;
+  logstep(("CreateInputTensor(" + input_name + ")").c_str());
+  const auto& input_tensor = network->CreateInputTensor(input_name.c_str());
   if (!input_tensor) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
-  logstep("CreateOutputTensor(attach_output0/out0)");
-  const auto& output_tensor = network->CreateOutputTensor("attach_output0/out0");
+  const std::string& output_name = model_cfg_.model.output_tensors.empty()
+      ? "attach_output0/out0" : model_cfg_.model.output_tensors[0];
+  logstep(("CreateOutputTensor(" + output_name + ")").c_str());
+  const auto& output_tensor = network->CreateOutputTensor(output_name.c_str());
   if (!output_tensor) { logstep("FAIL: null"); if (lf) fclose(lf); return false; }
 
-  logstep("LoadNetwork(mean=0, scale=1) — may crash here");
-  auto mean  = std::vector<float>{0.0f, 0.0f, 0.0f};
-  auto scale = std::vector<float>{1.0f, 1.0f, 1.0f};
+  logstep("LoadNetwork — may crash here");
+  auto mean  = model_cfg_.model.mean;
+  auto scale = model_cfg_.model.scale;
 
   if (!network->LoadNetwork(model_path, mean, scale)) {
     logstep("FAIL: LoadNetwork returned false");
@@ -239,37 +247,37 @@ bool HandDetector::LoadNeuralNetwork()
   }
 
   npu_load_info_.model_name_ = model_name;
-  npu_load_info_.input_tensor_names_ = "images_0";
-  npu_load_info_.output_tensor_names_ = "attach_output0/out0";
+  npu_load_info_.input_tensor_names_ = input_name;
+  npu_load_info_.output_tensor_names_ = output_name;
 
   if (lf) fclose(lf);
   remove("/tmp/npu_load.log");
 
   AppendLog("LoadNeuralNetwork: SUCCESS");
-  WriteEventLog("HandDetector: NPU model loaded OK");
+  WriteEventLog("ObjectDetector: NPU model loaded OK");
   return true;
 }
 
-void HandDetector::Start()
+void ObjectDetector::Start()
 {
   base::Start();
   AppendLog("Start called");
-  DebugLog("HandDetector Start");
-  WriteEventLog("HandDetector Start OK");
+  DebugLog("ObjectDetector Start");
+  WriteEventLog("ObjectDetector Start OK");
   if (!LoadNeuralNetwork()) {
     AppendLog("Start: LoadNeuralNetwork FAILED");
   }
 }
 
-bool HandDetector::Finalize()
+bool ObjectDetector::Finalize()
 {
   AppendLog("Finalize called");
-  DebugLog("HandDetector Finalize");
-  WriteEventLog("HandDetector Finalize");
+  DebugLog("ObjectDetector Finalize");
+  WriteEventLog("ObjectDetector Finalize");
   return Component::Finalize();
 }
 
-bool HandDetector::ProcessAEvent(Event* event)
+bool ObjectDetector::ProcessAEvent(Event* event)
 {
   bool result = true;
 
@@ -366,7 +374,7 @@ bool HandDetector::ProcessAEvent(Event* event)
   return result;
 }
 
-bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::string& body)
+bool ObjectDetector::HandleStreamRequest(OpenAppSerializable* param, const std::string& body)
 {
   std::string mode;
 
@@ -426,9 +434,9 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
   else if (mode == "start") {
     run_flag_ = true;
     AppendLog("mode=start: inference started");
-    DebugLog("HandDetector: inference started");
-    WriteEventLog("HandDetector: inference started");
-    mqtt_.PublishStatus("running", "network_binary.nb");
+    DebugLog("ObjectDetector: inference started");
+    WriteEventLog("ObjectDetector: inference started");
+    mqtt_.PublishStatus("running", model_cfg_.model.file);
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"running\"}");
     return true;
@@ -436,9 +444,9 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
   else if (mode == "stop") {
     run_flag_ = false;
     AppendLog("mode=stop: inference stopped");
-    DebugLog("HandDetector: inference stopped");
-    WriteEventLog("HandDetector: inference stopped");
-    mqtt_.PublishStatus("stopped", "network_binary.nb");
+    DebugLog("ObjectDetector: inference stopped");
+    WriteEventLog("ObjectDetector: inference stopped");
+    mqtt_.PublishStatus("stopped", model_cfg_.model.file);
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\",\"state\":\"stopped\"}");
     return true;
@@ -510,14 +518,15 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     std::string resp =
         std::string("{") +
         "\"state\":\"" + (run_flag_ ? "running" : "stopped") + "\"," +
-        "\"model\":\"network_binary.nb\"," +
+        "\"model\":\"" + model_cfg_.model.file + "\"," +
         "\"confidence_threshold\":" + std::to_string(attr.confidence_threshold) + "," +
         "\"nms_iou_threshold\":" + std::to_string(attr.nms_iou_threshold) + "," +
         "\"skip_frames\":" + std::to_string(attr.skip_frames) + "," +
         "\"alarm_on_threshold\":" + std::to_string(attr.alarm_on_threshold) + "," +
         "\"alarm_off_threshold\":" + std::to_string(attr.alarm_off_threshold) + "," +
         "\"mqtt_broker_host\":\"" + attr.mqtt_broker_host + "\"," +
-        "\"mqtt_broker_port\":" + std::to_string(attr.mqtt_broker_port) +
+        "\"mqtt_broker_port\":" + std::to_string(attr.mqtt_broker_port) + "," +
+        "\"display_name\":\"" + model_cfg_.display.name + "\"" +
         "}";
     param->SetStatusCode(200);
     param->SetResponseBody(resp);
@@ -550,7 +559,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     // MQTT 재연결 (host가 변경됐거나 미연결 시)
     if (!attr.mqtt_broker_host.empty()) {
       mqtt_.Disconnect();
-      bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port);
+      bool ok = mqtt_.Connect(attr.mqtt_broker_host, attr.mqtt_broker_port, model_cfg_.mqtt.client_id);
       AppendLog("MQTT: reconnect " + std::string(ok ? "OK " : "FAILED ") +
                 attr.mqtt_broker_host + ":" + std::to_string(attr.mqtt_broker_port));
     }
@@ -558,7 +567,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
     WriteAttributes(info_list_.get(), this->GetObjectName());
     AppendLog("mode=config updated: conf=" + std::to_string(attr.confidence_threshold) +
               " nms=" + std::to_string(attr.nms_iou_threshold));
-    DebugLog("HandDetector: config updated (conf=%.2f, nms=%.2f)",
+    DebugLog("ObjectDetector: config updated (conf=%.2f, nms=%.2f)",
              attr.confidence_threshold, attr.nms_iou_threshold);
     param->SetStatusCode(200);
     param->SetResponseBody("{\"result\":\"ok\"}");
@@ -570,7 +579,7 @@ bool HandDetector::HandleStreamRequest(OpenAppSerializable* param, const std::st
   return false;
 }
 
-void HandDetector::ProcessRawVideo(Event* event)
+void ObjectDetector::ProcessRawVideo(Event* event)
 {
   if (event == nullptr || event->IsReply()) return;
 
@@ -600,7 +609,7 @@ void HandDetector::ProcessRawVideo(Event* event)
   blob.ClearResource();
 }
 
-void HandDetector::Inference(std::shared_ptr<RawImage> img)
+void ObjectDetector::Inference(std::shared_ptr<RawImage> img)
 {
   if (!run_flag_) return;
   if (!img) return;
@@ -731,7 +740,7 @@ void HandDetector::Inference(std::shared_ptr<RawImage> img)
   }
 }
 
-bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
+bool ObjectDetector::PreProcess(std::shared_ptr<Tensor> rgb)
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
   if (!network) {
@@ -748,8 +757,8 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
   }
 
   img_size_t size = {
-    .width  = 640,
-    .height = 640
+    .width  = static_cast<unsigned int>(model_cfg_.model.input_width),
+    .height = static_cast<unsigned int>(model_cfg_.model.input_height)
   };
 
   static bool resize_logged = false;
@@ -829,7 +838,7 @@ bool HandDetector::PreProcess(std::shared_ptr<Tensor> rgb)
   return true;
 }
 
-bool HandDetector::Execute()
+bool ObjectDetector::Execute()
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
   if (!network) {
@@ -844,7 +853,7 @@ bool HandDetector::Execute()
   return ok;
 }
 
-bool HandDetector::PostProcess()
+bool ObjectDetector::PostProcess()
 {
   auto* network = GetNetwork(npu_load_info_.model_name_);
   if (!network) {
@@ -866,35 +875,32 @@ bool HandDetector::PostProcess()
     return false;
   }
 
-  const int N = 25200;       // YOLOv7 640x640: 80*80*3 + 40*40*3 + 20*20*3
-  const int S = 6;           // tx, ty, tw, th, obj_logit, cls_logit
+  const auto& pp_cfg = model_cfg_.postprocess;
+  const int num_classes = pp_cfg.num_classes;
+  const int S = 5 + num_classes;  // tx, ty, tw, th, obj_logit, cls_logits...
   auto& attr = info_list_->app_attribute_info;
 
-  // --- 앵커 그리드 사전 생성 (한 번만) ---
+  // --- 앵커 그리드 생성 (config 기반) ---
   struct AnchorInfo { float grid_x, grid_y, stride, anchor_w, anchor_h; };
   static std::vector<AnchorInfo> anchor_grid;
   if (anchor_grid.empty()) {
-    // YOLOv7 COCO default anchors
-    const float anchors[][6] = {
-      {12,16,  19,36,  40,28},   // P3 stride=8
-      {36,75,  76,55,  72,146},  // P4 stride=16
-      {142,110, 192,243, 459,401} // P5 stride=32
-    };
-    const int strides[] = {8, 16, 32};
-    const int grids[]   = {80, 40, 20};
+    const int input_w = model_cfg_.model.input_width;
+    const int num_levels = static_cast<int>(pp_cfg.strides.size());
+    const int apn = pp_cfg.num_anchors_per_level;
 
-    anchor_grid.reserve(N);
-    for (int lv = 0; lv < 3; lv++) {
-      int gs = grids[lv];
-      for (int a = 0; a < 3; a++) {          // anchor가 가장 바깥 (PyTorch 순서)
+    for (int lv = 0; lv < num_levels; lv++) {
+      int stride = pp_cfg.strides[lv];
+      int gs = input_w / stride;
+      const auto& anch = pp_cfg.anchors[lv];
+      for (int a = 0; a < apn; a++) {
         for (int gy = 0; gy < gs; gy++) {
           for (int gx = 0; gx < gs; gx++) {
             anchor_grid.push_back({
               static_cast<float>(gx),
               static_cast<float>(gy),
-              static_cast<float>(strides[lv]),
-              anchors[lv][a * 2],
-              anchors[lv][a * 2 + 1]
+              static_cast<float>(stride),
+              anch[a * 2],
+              anch[a * 2 + 1]
             });
           }
         }
@@ -904,6 +910,8 @@ bool HandDetector::PostProcess()
   }
 
   auto sigmoid = [](float x) -> float { return 1.0f / (1.0f + expf(-x)); };
+
+  const int N = static_cast<int>(anchor_grid.size());
 
   // 진단 로그
   static int pp_logged = 0;
@@ -916,7 +924,6 @@ bool HandDetector::PostProcess()
     for (int i = 0; i < S; i++)
       sample += std::to_string(raw[i]) + " ";
     AppendLog("PostProcess: raw logit (anchor0): " + sample);
-    // sigmoid 적용 후 값
     float obj0 = sigmoid(raw[4]);
     float cls0 = sigmoid(raw[5]);
     AppendLog("PostProcess: anchor0 sigmoid obj=" + std::to_string(obj0) +
@@ -954,8 +961,16 @@ bool HandDetector::PostProcess()
   std::vector<Detection> detections;
   for (int i = 0; i < N; i++) {
     float obj = sigmoid(raw[i * S + 4]);
-    float cls = sigmoid(raw[i * S + 5]);
-    float conf = obj * cls;
+
+    // multi-class: argmax over class logits
+    float best_cls = 0.0f;
+    int best_cls_id = 0;
+    for (int c = 0; c < num_classes; c++) {
+      float cls_val = sigmoid(raw[i * S + 5 + c]);
+      if (cls_val > best_cls) { best_cls = cls_val; best_cls_id = c; }
+    }
+
+    float conf = obj * best_cls;
     if (conf < attr.confidence_threshold) continue;
 
     const auto& ag = anchor_grid[i];
@@ -970,7 +985,7 @@ bool HandDetector::PostProcess()
     d.x2 = (cx + w / 2.0f) * scale_x_;
     d.y2 = (cy + h / 2.0f) * scale_y_;
     d.confidence = conf;
-    d.class_id = 0;
+    d.class_id = best_cls_id;
 
     d.x1 = std::max(0.0f, std::min(d.x1, static_cast<float>(frame_width_)));
     d.y1 = std::max(0.0f, std::min(d.y1, static_cast<float>(frame_height_)));
@@ -989,7 +1004,7 @@ bool HandDetector::PostProcess()
   for (size_t i = 0; i < detections.size(); i++) {
     if (suppressed[i]) continue;
     nms_result.push_back(detections[i]);
-    if (nms_result.size() >= 100) break;
+    if (static_cast<int>(nms_result.size()) >= pp_cfg.max_detections) break;
     for (size_t j = i + 1; j < detections.size(); j++) {
       if (suppressed[j]) continue;
       float ix1 = std::max(detections[i].x1, detections[j].x1);
@@ -1036,13 +1051,13 @@ bool HandDetector::PostProcess()
   } else {
     static int zero_det_cnt = 0;
     if (++zero_det_cnt % 30 == 1)
-      AppendLog("PostProcess #" + std::to_string(pp_cnt) + ": det=0 (no hand detected)");
+      AppendLog("PostProcess #" + std::to_string(pp_cnt) + ": det=0 (no " + model_cfg_.display.name + " detected)");
   }
 
   return true;
 }
 
-void HandDetector::SetMetaFrameSchema()
+void ObjectDetector::SetMetaFrameSchema()
 {
   std::string meta_schema =
       "{\"AppID\": \"" + manifest_.app_name + "\","
@@ -1055,7 +1070,7 @@ void HandDetector::SetMetaFrameSchema()
   AppendLog("SetMetaFrameSchema: registered (AppID=" + manifest_.app_name + ")");
 }
 
-void HandDetector::SetMetaFrameCapabilitySchema()
+void ObjectDetector::SetMetaFrameCapabilitySchema()
 {
   // 테스트: ONVIF 표준 타입만 사용하여 카메라가 등록하는지 확인
   std::string str_out =
@@ -1081,7 +1096,7 @@ void HandDetector::SetMetaFrameCapabilitySchema()
   AppendLog("CapabilityJSON: " + str_out.substr(0, 300));
 }
 
-void HandDetector::SendFrameMetadata(const std::vector<Detection>& detections)
+void ObjectDetector::SendFrameMetadata(const std::vector<Detection>& detections)
 {
   static int meta_cnt = 0;
   meta_cnt++;
@@ -1166,7 +1181,7 @@ void HandDetector::SendFrameMetadata(const std::vector<Detection>& detections)
     AppendLog("SendFrameMetadata: sent " + std::to_string(meta_cnt) + " frames total");
 }
 
-void HandDetector::SendOsd(int det_count, float max_conf)
+void ObjectDetector::SendOsd(int det_count, float max_conf)
 {
   IPStreamRequesterManagerVideo::MultilineOsdItem item;
   item.Enable       = true;
@@ -1179,11 +1194,21 @@ void HandDetector::SendOsd(int det_count, float max_conf)
   item.PositionY    = 0;
 
   if (det_count > 0) {
-    char buf[64];
-    snprintf(buf, sizeof(buf), "Hand: %d | Conf: %d%%", det_count, (int)(max_conf * 100));
-    item.OSD = buf;
+    // osd_format: "{name}: {count} | Conf: {conf}%"
+    std::string osd = model_cfg_.display.osd_format;
+    auto replace = [](std::string& s, const std::string& from, const std::string& to) {
+      auto pos = s.find(from);
+      if (pos != std::string::npos) s.replace(pos, from.size(), to);
+    };
+    replace(osd, "{name}", model_cfg_.display.name);
+    replace(osd, "{count}", std::to_string(det_count));
+    replace(osd, "{conf}", std::to_string((int)(max_conf * 100)));
+    item.OSD = osd.c_str();
   } else {
-    item.OSD = "Hand: 0";
+    std::string osd = model_cfg_.display.osd_no_detection;
+    auto pos = osd.find("{name}");
+    if (pos != std::string::npos) osd.replace(pos, 6, model_cfg_.display.name);
+    item.OSD = osd.c_str();
   }
 
   auto* osd = new ("MultilineOSD")
@@ -1194,27 +1219,27 @@ void HandDetector::SendOsd(int det_count, float max_conf)
       0, osd);
 }
 
-void HandDetector::SendMetadataSchema()
+void ObjectDetector::SendMetadataSchema()
 {
   std::string schema =
-      "{\"EventName\": \"OpenSDK.hand_detector.HandDetection\","
-      "\"EventTopic\": \"tns1:OpenApp/hand_detector/HandDetection\","
+      "{\"EventName\": \"OpenSDK.object_detector.Detection\","
+      "\"EventTopic\": \"tns1:OpenApp/object_detector/Detection\","
       "\"EventSchema\": \"\","
       "\"SchemaType\": \"PROPRIETARY\"}";
 
   SendNoReplyEvent("OpenEventDispatcher",
       static_cast<int32_t>(I_EventstatusCGIDispatcher::EEventType::eMetadataSchema), 0,
       new ("Schema") Platform_Std_Refine::SerializableString(schema.c_str()));
-  AppendLog("SendMetadataSchema: registered (topic=tns1:OpenApp/hand_detector/HandDetection)");
+  AppendLog("SendMetadataSchema: registered (topic=tns1:OpenApp/object_detector/Detection)");
 }
 
-void HandDetector::SendEventStatusSchema()
+void ObjectDetector::SendEventStatusSchema()
 {
   std::string schema =
       "{\"AppID\": \"" + app_id_ + "\","
       "\"Schema\": ["
       "{\"Type\": \"SCHEME\", \"Format\": \"TEXT\","
-      "\"Content\": \"EventName=OpenSDK.hand_detector.HandDetection;"
+      "\"Content\": \"EventName=OpenSDK.object_detector.Detection;"
       "Channel=0;State=bool;DetectionCount=int;MaxConfidence=float\"}"
       "]}";
 
@@ -1224,13 +1249,13 @@ void HandDetector::SendEventStatusSchema()
   AppendLog("SendEventStatusSchema: registered");
 }
 
-void HandDetector::NotifyEventMetadata(bool detected, int det_count, float max_conf)
+void ObjectDetector::NotifyEventMetadata(bool detected, int det_count, float max_conf)
 {
   auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch()).count();
 
   auto event_metadata = EventMetadataItem();
-  event_metadata.set_topic("tns1:OpenApp/hand_detector/HandDetection");
+  event_metadata.set_topic("tns1:OpenApp/object_detector/Detection");
   event_metadata.set_timestamp(timestamp);
   event_metadata.add_source({"VideoSourceToken", "VideoSourceToken-0"});
   event_metadata.add_data({"State", detected ? "true" : "false"});
@@ -1254,7 +1279,7 @@ void HandDetector::NotifyEventMetadata(bool detected, int det_count, float max_c
               " broadcast=true");
 }
 
-NeuralNetwork* HandDetector::GetOrCreateNetwork(const std::string& name)
+NeuralNetwork* ObjectDetector::GetOrCreateNetwork(const std::string& name)
 {
   auto* network = GetNetwork(name);
   if (!network) {
@@ -1264,19 +1289,19 @@ NeuralNetwork* HandDetector::GetOrCreateNetwork(const std::string& name)
   return network;
 }
 
-NeuralNetwork* HandDetector::GetNetwork(const std::string& name)
+NeuralNetwork* ObjectDetector::GetNetwork(const std::string& name)
 {
   auto it = nn_map_.find(name);
   if (it != nn_map_.end()) return it->second.get();
   return nullptr;
 }
 
-HandDetector::NeuralNeworkMap& HandDetector::GetAllNetworks()
+ObjectDetector::NeuralNeworkMap& ObjectDetector::GetAllNetworks()
 {
   return nn_map_;
 }
 
-void HandDetector::RemoveNetwork(const std::string& name)
+void ObjectDetector::RemoveNetwork(const std::string& name)
 {
   auto it = nn_map_.find(name);
   if (it != nn_map_.end()) {
@@ -1287,14 +1312,14 @@ void HandDetector::RemoveNetwork(const std::string& name)
 
 extern "C"
 {
-  HandDetector* create_component(void* mem_manager)
+  ObjectDetector* create_component(void* mem_manager)
   {
     Component::allocator = decltype(Component::allocator)(mem_manager);
     Event::allocator = decltype(Event::allocator)(mem_manager);
-    return new ("HandDetector") HandDetector();
+    return new ("ObjectDetector") ObjectDetector();
   }
 
-  void destroy_component(HandDetector* ptr)
+  void destroy_component(ObjectDetector* ptr)
   {
     delete ptr;
   }

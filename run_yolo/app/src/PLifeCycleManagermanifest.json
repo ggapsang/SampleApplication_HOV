@@ -1,10 +1,10 @@
 {
   "SkeletonPortNumber": "auto",
-  "ContainerName": "hand_detector",
+  "ContainerName": "object_detector",
   "AcceptLocalOnly": false,
   "SchedulerNames": [
     "EComponents::eScheduler1",
-    "HandDetectorScheduler"
+    "ObjectDetectorScheduler"
   ],
   "RemoteContainerNames": [
     {

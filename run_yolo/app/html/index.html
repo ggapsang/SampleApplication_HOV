@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Hand Detector Debug Console</title>
+  <title>Object Detector Debug Console</title>
   <style>
     body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; margin: 20px; }
     h1 { color: #4ec9b0; margin-bottom: 4px; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>Hand Detector Debug Console</h1>
+  <h1>Object Detector Debug Console</h1>
   <div class="subtitle" id="app-uri">URI: 로딩 중...</div>
 
   <div class="section">
@@ -86,7 +86,7 @@
 
   <script>
     const paths = window.location.pathname.split('/');
-    const app_id = paths[5] || 'hand_detector';
+    const app_id = paths[5] || 'object_detector';
     const base_uri = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/opensdk/${app_id}/configuration`;
     document.getElementById('app-uri').textContent = 'URI: ' + base_uri;
 
@@ -134,6 +134,7 @@
         if(d.mqtt_broker_host){
           document.getElementById('mqtt-host').value=d.mqtt_broker_host;
         }
+        if(d.display_name) window._displayName=d.display_name;
       }).catch(e=>setResponse('Error: '+e));
     }
     function doTest() {
@@ -224,7 +225,7 @@
             ctx.fillRect(x,y-16,80,16);
             ctx.fillStyle=ctx.strokeStyle;
             ctx.font='bold 11px monospace';
-            ctx.fillText('Hand '+conf+'%',x+2,y-4);
+            ctx.fillText((window._displayName||'Object')+' '+conf+'%',x+2,y-4);
           }
         }
         document.getElementById('cap-status').textContent=

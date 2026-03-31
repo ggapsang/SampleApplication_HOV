@@ -1,5 +1,5 @@
 {
-  "LibraryFileName": "libhand_detector.so",
+  "LibraryFileName": "libobject_detector.so",
   "Version": "1.0.0",
   "DynamicLoadable": true
 }

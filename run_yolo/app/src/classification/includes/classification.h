@@ -12,6 +12,7 @@
 #include "i_log_manager.h"
 #include "yolo_postprocess.h"
 #include "mqtt_logger.h"
+#include "model_config.h"
 
 constexpr ClassID kComponentId =
     static_cast<ClassID>(_ELayer_Analytics_Detector::_eObjectDetectorAI);
@@ -20,7 +21,7 @@ constexpr unsigned long HashStr(const char* str, int h = 0) {
   return !str[h] ? 55 : (HashStr(str, h + 1) * 33) + (unsigned char)(str[h]);
 }
 
-class HandDetector : public Component {
+class ObjectDetector : public Component {
   struct ManifestInfo {
    public:
     std::string app_name;
@@ -53,14 +54,14 @@ class HandDetector : public Component {
     AppAttributeInfo() { reset(); }
   };
 
-  struct HandDetectorInfoList : public SerializableJson {
+  struct ObjectDetectorInfoList : public SerializableJson {
    public:
     AppAttributeInfo app_attribute_info;
     std::string attribute_version_;
 
    public:
-    HandDetectorInfoList() = delete;
-    explicit HandDetectorInfoList(const std::string& version) {
+    ObjectDetectorInfoList() = delete;
+    explicit ObjectDetectorInfoList(const std::string& version) {
       sizeOfThis = sizeof(*this);
       app_attribute_info.reset();
       attribute_version_ = version;
@@ -169,9 +170,9 @@ class HandDetector : public Component {
   using NeuralNeworkMap = std::unordered_map<std::string, std::unique_ptr<NeuralNetwork>>;
 
  public:
-  HandDetector();
-  HandDetector(ClassID id, const char* name);
-  virtual ~HandDetector();
+  ObjectDetector();
+  ObjectDetector(ClassID id, const char* name);
+  virtual ~ObjectDetector();
   bool ProcessAEvent(Event* event) override;
 
  protected:
@@ -242,9 +243,10 @@ class HandDetector : public Component {
   float scale_y_ = 1.0f;  // orig_height / 640.0 (direct resize)
   bool npu_loaded_ = false;
   int last_detection_count_ = 0;
-  std::shared_ptr<HandDetectorInfoList> info_list_;
+  std::shared_ptr<ObjectDetectorInfoList> info_list_;
   ManifestInfo manifest_;
   std::vector<std::string> debug_log_;
   MqttLogger mqtt_;
+  ModelConfig model_cfg_;
 
 };

@@ -11,11 +11,13 @@ class MqttLogger {
   MqttLogger() = default;
   ~MqttLogger();
 
-  bool Connect(const std::string& host, int port, const std::string& client_id = "hand_detector");
+  bool Connect(const std::string& host, int port, const std::string& client_id = "object_detector");
   void Disconnect();
   void Publish(const std::string& topic, const std::string& payload);
 
   bool IsConnected() const { return connected_; }
+
+  void SetTopicPrefix(const std::string& prefix) { topic_prefix_ = prefix; }
 
   // 편의 메서드: JSON 형식 발행
   void PublishDetection(int frame_id, int det_count, float max_conf);
@@ -28,6 +30,7 @@ class MqttLogger {
   std::string broker_host_;
   int broker_port_ = 1883;
   std::string client_id_;
+  std::string topic_prefix_ = "object";
 
   bool SendBytes(const void* data, size_t len);
   std::vector<uint8_t> BuildConnectPacket(const std::string& client_id);
