@@ -33,7 +33,7 @@ class HandDetector : public Component {
     float confidence_threshold = 0.75f;
     float nms_iou_threshold = 0.45f;
     int skip_frames = 0;
-    std::string mqtt_broker_host = "192.168.2.80";
+    std::string mqtt_broker_host = "192.168.5.78";
     int mqtt_broker_port = 1883;
     int alarm_on_threshold = 5;
     int alarm_off_threshold = 30;
@@ -43,7 +43,7 @@ class HandDetector : public Component {
       confidence_threshold = 0.75f;
       nms_iou_threshold = 0.45f;
       skip_frames = 0;
-      mqtt_broker_host = "192.168.2.80";
+      mqtt_broker_host = "192.168.5.78";
       mqtt_broker_port = 1883;
       alarm_on_threshold = 5;
       alarm_off_threshold = 30;

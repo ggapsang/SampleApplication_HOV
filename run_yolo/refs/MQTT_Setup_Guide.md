@@ -45,7 +45,7 @@ cd "C:\Program Files\Mosquitto"
 
 **파일**: `app/src/classification/includes/classification.h`
 ```cpp
-std::string mqtt_broker_host = "192.168.2.80";  // ← PC IP 변경
+std::string mqtt_broker_host = "192.168.1.78";  // ← PC IP 변경
 int mqtt_broker_port = 1883;
 ```
 

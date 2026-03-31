@@ -20,7 +20,7 @@ docker compose down --remove-orphans
 ## 카메라 배포
 
 ```bash
-opensdk_install -a hand_detector -i 192.168.2.60 -u admin -w {비밀번호}
+opensdk_install -a hand_detector -i 192.168.5.60 -u admin -w {비밀번호}
 ```
 
 ## 디버그 콘솔 접속
@@ -74,7 +74,7 @@ allow_anonymous true
 ## 2. 카메라 앱 설정
 
 브로커 주소는 앱 attribute에서 설정됩니다:
-- `mqtt_broker_host`: 브로커 IP (기본값: `192.168.2.80`)
+- `mqtt_broker_host`: 브로커 IP (기본값: `192.168.5.78`)
 - `mqtt_broker_port`: 포트 (기본값: `1883`)
 
 웹 UI(`/mode=config`)에서 변경하거나, `Classification_default_attribute_0.json`에서 직접 수정 가능.
@@ -83,22 +83,22 @@ allow_anonymous true
 
 ### 전체 로그 수신
 ```bash
-& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.2.80 -t "hand/#" -v
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.5.78 -t "hand/#" -v
 mosquitto_sub -h <브로커IP> -t "hand/#" -v
 ```
 
 ### 토픽별 수신
 ```bash
 # 감지 결과만
-& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.2.80 -t "hand/detection" -v
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.5.78 -t "hand/detection" -v
 mosquitto_sub -h <브로커IP> -t "hand/detection" -v
 
 # Timing (heartbeat)
-& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.2.80 -t "hand/debug" -v
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.5.78 -t "hand/debug" -v
 mosquitto_sub -h <브로커IP> -t "hand/debug" -v
 
 # 상태 변경
-& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.2.80 -t "hand/status" -v
+& "C:\Program Files\mosquitto\mosquitto_sub.exe" -h 192.168.5.78 -t "hand/status" -v
 mosquitto_sub -h <브로커IP> -t "hand/status" -v
 ```
 
