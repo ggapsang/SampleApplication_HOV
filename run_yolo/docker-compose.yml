@@ -4,6 +4,7 @@ services:
     container_name : ${APP_NAME}
     volumes:
       - ./:/opt/${APP_NAME}
+      - ./cert_keys:/opt/opensdk/signature
     working_dir: /opt/${APP_NAME}
     command: >
       /bin/bash -c "
