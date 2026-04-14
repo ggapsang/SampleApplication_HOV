@@ -20,7 +20,7 @@
 │  │                      │    │                          │ │
 │  │  - VideoRaw Provider │    │  - AppDispatcher         │ │
 │  │  - MetadataManager   │    │  - UserComponent         │ │
-│  │  - LogManager        │    │    (Classification 등)    │ │
+│  │  - LogManager        │    │    (ObjectDetector 등)   │ │
 │  │  - OpenPlatform      │    │                          │ │
 │  │  - AlarmIO           │    │                          │ │
 │  │  - OpenAPIDispatcher │    │                          │ │
@@ -43,11 +43,11 @@
 ```json
 {
   "SkeletonPortNumber": "auto",
-  "ContainerName": "hand_detector",
+  "ContainerName": "object_detector",
   "AcceptLocalOnly": false,
   "SchedulerNames": [
     "EComponents::eScheduler1",
-    "HandDetectorScheduler"
+    "ObjectDetectorScheduler"
   ],
   "RemoteContainerNames": [
     {
@@ -108,10 +108,10 @@
 
 ```json
 {
-  "LibraryFileName": "libclassification.so",
+  "LibraryFileName": "libobject_detector.so",
   "Instance": {
-    "InstanceName": "HandDetector",
-    "SchedulerName": "HandDetectorScheduler",
+    "InstanceName": "ObjectDetector",
+    "SchedulerName": "ObjectDetectorScheduler",
     "ReceiverNames": [
       "AppDispatcher",
       "RuleManager",
@@ -163,11 +163,11 @@ HTTP 요청을 컴포넌트로 라우팅하는 디스패처입니다.
   "Instance": {
     "InstanceName": "AppDispatcher",
     "SchedulerName": "EComponents::eScheduler1",
-    "ReceiverNames": ["Stub::Dispatcher::OpenAPI", "HandDetector"],
+    "ReceiverNames": ["Stub::Dispatcher::OpenAPI", "ObjectDetector"],
     "SourceNames": [
       {
         "Source": "Stub::Dispatcher::OpenAPI",
-        "GroupName": "OpenSDK::hand_detector::Dispatcher"
+        "GroupName": "OpenSDK::object_detector::Dispatcher"
       }
     ],
     "Channel": "${APPCHANNEL}"
@@ -175,7 +175,7 @@ HTTP 요청을 컴포넌트로 라우팅하는 디스패처입니다.
 }
 ```
 
-**주의:** `ReceiverNames`에 있는 `"HandDetector"`는 인스턴스 매니페스트의 `InstanceName`과 일치해야 합니다.
+**주의:** `ReceiverNames`에 있는 `"ObjectDetector"`는 인스턴스 매니페스트의 `InstanceName`과 일치해야 합니다.
 
 
 ### 2.4 세 파일 간 매핑 관계 (요약)
@@ -206,19 +206,19 @@ System Container의 LogManager 컴포넌트에 이벤트 도달
 ```cpp
 extern "C" {
   // SDK 프레임워크가 호출하는 팩토리 함수
-  Classification* create_component(void *mem_manager) {
+  ObjectDetector* create_component(void *mem_manager) {
     Component::allocator = decltype(Component::allocator)(mem_manager);
     Event::allocator = decltype(Event::allocator)(mem_manager);
-    return new("Classification") Classification();
+    return new("ObjectDetector") ObjectDetector();
   }
-  void destroy_component(Classification *ptr) { delete ptr; }
+  void destroy_component(ObjectDetector *ptr) { delete ptr; }
 }
 ```
 
 호출 순서: `create_component()` → `Initialize()` → `Start()` → `ProcessAEvent()` 반복 → `Finalize()`
 
 ```cpp
-bool HandDetector::Initialize() {
+bool ObjectDetector::Initialize() {
   // 1. 속성 초기화
   PrepareAttributes();
   // 2. OpenAPI URI 등록 (HTTP 엔드포인트)
@@ -227,13 +227,13 @@ bool HandDetector::Initialize() {
   return Component::Initialize();
 }
 
-bool HandDetector::Finalize() {
+bool ObjectDetector::Finalize() {
   // 리소스 정리
   return Component::Finalize();
 }
 
 // 모든 이벤트는 이 함수 하나로 들어옴
-bool HandDetector::ProcessAEvent(Event* event) {
+bool ObjectDetector::ProcessAEvent(Event* event) {
   switch (event->GetType()) {
     case (int32_t)IAppDispatcher::EEventType::eHttpRequest:
       // HTTP 요청 처리
@@ -256,7 +256,7 @@ bool HandDetector::ProcessAEvent(Event* event) {
 `Initialize()`에서 반드시 호출해야 합니다. **GET과 POST를 모두 등록**해야 합니다.
 
 ```cpp
-void HandDetector::RegisterOpenAPIURI() {
+void ObjectDetector::RegisterOpenAPIURI() {
   Vector<String> methods;
   methods.push_back("GET");    // ← 반드시 포함
   methods.push_back("POST");
@@ -309,7 +309,7 @@ POST /opensdk/{app_id}/configuration             → body: {"mode":"start"} 등
 ### 5.1 Write Event Log (카메라 웹 UI 이벤트 로그탭에 출력)
 
 ```cpp
-void HandDetector::SendWriteEventLog(const std::string& message) {
+void ObjectDetector::SendWriteEventLog(const std::string& message) {
   auto* log = new Log(
       Log::LogType::EVENT_LOG,
       Log::LogDetailType::EVENT_OPENAPP,
@@ -331,7 +331,7 @@ void HandDetector::SendWriteEventLog(const std::string& message) {
 ### 5.2 Send Metadata (ONVIF 메타데이터 → VMS)
 
 ```cpp
-void HandDetector::SendMetadata(class StreamMetadata&& metadata) {
+void ObjectDetector::SendMetadata(class StreamMetadata&& metadata) {
   auto builder = IPMetadataManager::StreamMetadataRequest::builder();
   builder.set_stream_metadata(std::forward<class StreamMetadata>(metadata));
   auto metadata_request = reinterpret_cast<IPMetadataManager::StreamMetadataRequest*>(builder.build());
@@ -399,7 +399,7 @@ SDK 클래스마다 `new ("ClassName") ClassName(...)` 지원 여부가 다릅�
 | NetworkBufferData | `new ("NetworkBufferData") NetworkBufferData(...)` | placement new 지원 |
 | RelayRequest | `new ("RelayRequest") IConfigurableAlarmOut::RelayRequest(...)` | placement new 지원 |
 | OpenAPIRegistrar | `new ("OpenAPI") IAppDispatcher::OpenAPIRegistrar(...)` | placement new 지원 |
-| Classification(컴포넌트) | `new("Classification") Classification()` | create_component 내부 |
+| ObjectDetector(컴포넌트) | `new("ObjectDetector") ObjectDetector()` | create_component 내부 |
 
 **확인 방법:** SDK 공식 샘플 코드에서 해당 클래스의 생성 방식을 확인합니다.
 
@@ -427,7 +427,7 @@ SDK 클래스마다 `new ("ClassName") ClassName(...)` 지원 여부가 다릅�
 프로젝트 루트에 `.env` 파일 생성:
 
 ```
-APP_NAME=hand_detector
+APP_NAME=object_detector
 SDK_VER=25.04.09
 SOC=wn9
 ```
@@ -437,48 +437,56 @@ docker compose up          # 빌드 + 패키징
 docker compose down --remove-orphans  # 정리
 ```
 
-결과물: `hand_detector.cap`
+결과물: `object_detector.cap`
 
 ### 9.2 카메라 설치
 
 ```bash
-opensdk_install -a hand_detector -i 192.168.5.60 -u admin -w {password}
+opensdk_install -a object_detector -i 192.168.2.60 -u admin -w {password}
 ```
 
 또는 카메라 웹 UI > Setup > Open Platform 에서 .cap 파일 업로드.
 
 ### 9.3 서명 인증서
 
-Docker 이미지 내 `/opt/opensdk/signature/`에 `AppTest.crt`, `AppTest.key`가 있어야 `opensdk_packager`가 동작합니다.
+Docker 이미지 내 `/opt/opensdk/signature/`에 `AppTest.crt`, `AppTest.key`가 있어야 `opensdk_packager`가 동작합니다. 이 키는 **분기별로 만료**되므로 [Hanwha Open Platform Help Desk](https://hanwhasecurity.com)에서 최신 테스트 키를 받아 프로젝트 루트의 `cert_keys/` 폴더에 두고, `docker-compose.yml`에서 볼륨 마운트해 덮어씌웁니다:
+
+```yaml
+volumes:
+  - ./:/opt/${APP_NAME}
+  - ./cert_keys:/opt/opensdk/signature
+```
 
 ---
 
 ## 10. 디렉토리 구조
 
+실제 프로젝트 구조는 `CLAUDE.md` 참조. 핵심 파일만 요약:
+
 ```
-hand_detector/
-├── .env                           # 빌드 환경변수
-├── docker-compose.yml             # 빌드 자동화
-├── config/
-│   └── app_manifest.json          # 앱 이름, 버전, 권한
-├── app/
-│   ├── html/
-│   │   └── index.html             # 웹 UI (Go App 페이지)
-│   ├── src/
-│   │   ├── PLifeCycleManagermanifest.json       # LCM (컨테이너 레벨)
-│   │   ├── app_dispatcher/
-│   │   │   └── manifests/
-│   │   │       └── AppDispatcher_manifest_instance_0.json
-│   │   └── classification/
-│   │       ├── classification.cc               # 메인 로직
-│   │       ├── includes/
-│   │       │   └── classification.h
-│   │       └── manifests/
-│   │           └── Classification_manifest_instance_0.json  # 인스턴스 매니페스트
-│   └── res/
-│       └── models/                # NPU 모델 파일 (.bin)
-└── storage/
-    └── settings/                  # 런타임 속성 파일
+run_yolo/
+├── .env                                     # APP_NAME, SDK_VER, SOC
+├── docker-compose.yml                       # 빌드 + cert_keys 마운트
+├── cert_keys/                               # 서명 키 (git 미추적)
+├── config/app_manifest.json                 # AppName
+└── app/
+    ├── html/index.html                      # 웹 UI
+    ├── src/
+    │   ├── PLifeCycleManagermanifest.json   # LCM
+    │   └── classification/
+    │       ├── classification.cc            # ObjectDetector 메인
+    │       ├── model_config.cc              # 모델 설정 JSON 파서
+    │       ├── mqtt_logger.cc
+    │       └── manifests/
+    │           ├── Classification_manifest_instance_0.json
+    │           └── Classification_default_attribute_0.json
+    └── res/
+        ├── ai_bin/
+        │   ├── network_binary.nb            # NPU 모델
+        │   └── model_config.json            # 모델별 설정
+        └── models/
+            ├── AppDispatcher_manifest_instance_0.json
+            └── Classification_manifest_instance_0.json
 ```
 
 ---

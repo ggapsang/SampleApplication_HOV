@@ -1,8 +1,7 @@
-# OpenSDK 디버깅 교훈록 — Phase 1 (HTTP API + 이벤트 로그)
+# OpenSDK 디버깅 교훈록 — 매니페스트 & HTTP API
 
-> 작성일: 2026-03-23
-> 대상: hand_detector (PNV-A9082RZ, WN9, SDK 25.04.09)
-> 목적: 동일한 실수를 반복하지 않기 위한 기록. Phase 2 이후 개발 및 외주 관리 시 참조.
+> 대상: object_detector (PNV-A9082RZ, WN9, SDK 25.04.09)
+> 목적: 매니페스트 오류 디버깅 시 참조. 동일한 실수 반복 방지.
 
 ---
 
@@ -90,13 +89,13 @@ auto* log = new Log(Log::LogType::EVENT_LOG, Log::LogDetailType::EVENT_OPENAPP,
 
 ```cpp
 // 틀림
-bool HandDetector::Initialize() {
+bool ObjectDetector::Initialize() {
   // ... 초기화 코드 ...
   return true;
 }
 
 // 올바름
-bool HandDetector::Initialize() {
+bool ObjectDetector::Initialize() {
   RegisterOpenAPIURI();
   PrepareAttributes(...);
   // ...
@@ -109,7 +108,7 @@ bool HandDetector::Initialize() {
 ### 2.6 RegisterOpenAPIURI — POST만 등록
 
 ```cpp
-// 올바른 패턴 (hand_detector 기준)
+// 올바른 패턴 (object_detector 기준)
 Vector<String> methods;
 methods.push_back("POST");  // POST만. GET은 추가하지 않음.
 ```
@@ -140,9 +139,9 @@ methods.push_back("POST");  // POST만. GET은 추가하지 않음.
 ```json
 {
   "SkeletonPortNumber": "auto",
-  "ContainerName": "hand_detector",
+  "ContainerName": "object_detector",
   "AcceptLocalOnly": false,
-  "SchedulerNames": ["EComponents::eScheduler1", "HandDetectorScheduler"],
+  "SchedulerNames": ["EComponents::eScheduler1", "ObjectDetectorScheduler"],
   "RemoteContainerNames": [
     {"ContainerName": "System", "Address": "localhost", "PortNumber": 8587}
   ],
@@ -158,8 +157,8 @@ methods.push_back("POST");  // POST만. GET은 추가하지 않음.
 {
   "LibraryFileName": "libclassification.so",
   "Instance": {
-    "InstanceName": "HandDetector",
-    "SchedulerName": "HandDetectorScheduler",
+    "InstanceName": "ObjectDetector",
+    "SchedulerName": "ObjectDetectorScheduler",
     "ReceiverNames": [
       "AppDispatcher",
       {"SymbolName": "LogManager", "RealName": "2009004"}
@@ -177,9 +176,9 @@ methods.push_back("POST");  // POST만. GET은 추가하지 않음.
   "Instance": {
     "InstanceName": "AppDispatcher",
     "SchedulerName": "EComponents::eScheduler1",
-    "ReceiverNames": ["Stub::Dispatcher::OpenAPI", "HandDetector"],
+    "ReceiverNames": ["Stub::Dispatcher::OpenAPI", "ObjectDetector"],
     "SourceNames": [
-      {"Source": "Stub::Dispatcher::OpenAPI", "GroupName": "OpenSDK::hand_detector::Dispatcher"}
+      {"Source": "Stub::Dispatcher::OpenAPI", "GroupName": "OpenSDK::object_detector::Dispatcher"}
     ],
     "Channel": 0,
     "ModelPath": "",
@@ -188,17 +187,17 @@ methods.push_back("POST");  // POST만. GET은 추가하지 않음.
 }
 ```
 
-Phase 2에서 영상 처리를 추가할 때는 LCM에 `SPMgrVideoRaw_0`, `MetadataManager_0` 등의 매핑을 추가하고, Instance SourceNames에도 대응하는 항목을 넣어야 함.
+영상 처리(SPMgrVideoRaw), 메타데이터(MetadataManager), OSD(SRMgrVideo), 알람(ConfigurableAlarmOut) 등을 추가할 때는 LCM `RemoteComponentNames`와 Instance 매니페스트의 `ReceiverNames`/`SourceNames`에 **양쪽 모두** 매핑을 넣어야 함.
 
 ---
 
-## 5. Phase 2 진입 시 확인 사항
+## 5. 매니페스트 확장 원칙
 
-Phase 2(NPU 모델 로딩 + 영상 프레임 수신)에서 매니페스트를 확장할 때, 이번 교훈을 반드시 적용할 것:
+매니페스트에 새 컴포넌트를 추가할 때:
 
 1. SourceNames에 항목을 추가하면 LCM RemoteComponentNames에도 반드시 매핑 추가
 2. ReceiverNames에 항목을 추가하면 LCM RemoteComponentNames에도 반드시 매핑 추가
-3. 추가 후 빌드 전에 `run_neural_network` 샘플의 매니페스트와 비교 대조
+3. 추가 전에 `run_neural_network` 등 동작 샘플의 매니페스트와 비교 대조
 4. 한 번에 하나씩만 추가하고, 추가할 때마다 카메라에 설치하여 앱 기동 여부 확인
 
 ---
